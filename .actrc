@@ -1,0 +1,6 @@
+-P ubuntu-latest=catthehacker/ubuntu:full-latest
+--eventpath .act/event.json
+--input-file .act/.input
+--env-file .act/.env"
+--secret-file .act/.secrets
+--artifact-server-path $PWD/.artifacts

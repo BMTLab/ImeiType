@@ -1,0 +1,103 @@
+# .github/workflows/ci-release.yml
+name: Release Packages CI
+
+on:
+  workflow_call:
+
+env:
+  RELEASE_DIR: release
+
+jobs:
+  verify-tag:
+    name: Verify Before Publish
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+
+    outputs:
+      version: ${{ steps.check_tag_version.outputs.version }}
+      is_prerelease: ${{ steps.check_tag_version.outputs.is_prerelease }}
+      is_latest: ${{ steps.check_tag_version.outputs.is_latest }}
+      is_publishable: ${{ steps.check_tag_version.outputs.is_publishable }}
+
+    steps:
+      - name: 🛡️ Check Permissions
+        run: |
+          echo "GitHub Actor: '${{ github.actor }}'"
+          echo "Repository Owner: '${{ github.repository_owner }}'"
+          if [ '${{ github.actor }}' != '${{ github.repository_owner }}' ]; then
+            echo 'Only the repository owner can publish' >&2
+            exit 103
+          fi
+          #######################################################
+
+      - name: ⚙ Checkout Check Tag Action
+        uses: actions/checkout@v4.2.2
+        with:
+          sparse-checkout: .github/actions/check-tag-action
+          sparse-checkout-cone-mode: false
+          fetch-tags: true
+
+      - name: 🔝 Check Tag Version
+        id: check_tag_version
+        uses: ./.github/actions/check-tag-action
+        timeout-minutes: 5
+        with:
+          version: ${{ github.ref_name }}
+          allowed_prerelease_suffix_regex: '^(alpha|beta|rc)$'
+
+  push-nuget:
+    name: Push To NuGet
+    needs: verify-tag
+    if: ${{ needs.verify-tag.outputs.is_publishable == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: ⚙ Setup .NET (for nuget)
+        uses: actions/setup-dotnet@v4.3.0
+        with:
+          dotnet-version: 9.0.x
+
+      - name: 📥 Download Packages
+        uses: actions/download-artifact@v4.1.8
+        with:
+          name: packages-${{ github.sha }}
+          path: ${{ env.RELEASE_DIR }}
+
+      - name: 📣 Publish to NuGet
+        run: |
+          dotnet nuget push ${{ env.RELEASE_DIR }}/*.nupkg \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+  create-release:
+    name: Create Release
+    needs: verify-tag
+    if: ${{ needs.verify-tag.outputs.is_publishable == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 📥 Download Packages
+        uses: actions/download-artifact@v4.1.8
+        with:
+          name: packages-${{ github.sha }}
+          path: ${{ env.RELEASE_DIR }}
+
+      - name: 📯 Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: 'Release ${{ needs.verify-tag.outputs.version }}'
+          generate_release_notes: true
+          files: ${{ env.RELEASE_DIR }}/*
+          prerelease: ${{ needs.verify-tag.outputs.is_prerelease == 'true' }}
+          make_latest: ${{ needs.verify-tag.outputs.is_latest == 'true' }}
+
+      - name: 🖨️ Report Release
+        run: |
+          echo '# New Release ${{ needs.verify-tag.outputs.version }}' >> $GITHUB_STEP_SUMMARY
+          echo '_ID: ${{ steps.create_release.outputs.id }}_' >> $GITHUB_STEP_SUMMARY
+          echo 'URL: ${{ steps.create_release.outputs.url }}' >> $GITHUB_STEP_SUMMARY
+        continue-on-error: true

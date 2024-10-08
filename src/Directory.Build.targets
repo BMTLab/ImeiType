@@ -1,0 +1,22 @@
+<!--./src/Directory.Build.targets-->
+<Project>
+
+    <Import Project="$([MSBuild]::GetPathOfFileAbove(Directory.Build.targets, $(MSBuildThisFileDirectory)..))"/>
+
+    <PropertyGroup>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <TargetFrameworkMonikerAssemblyAttributesPath>
+            $([System.IO.Path]::Combine('$(IntermediateOutputPath)','$(TargetFrameworkMoniker).AssemblyAttributes$(DefaultLanguageSourceExtension)'))
+        </TargetFrameworkMonikerAssemblyAttributesPath>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <EmbeddedFiles Include="$(GeneratedAssemblyInfoFile)"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="$(AssemblyName).$(_TestNamespace).Unit"/>
+        <InternalsVisibleTo Include="$(AssemblyName).$(_TestNamespace).Benchmarks"/>
+    </ItemGroup>
+
+</Project>

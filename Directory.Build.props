@@ -1,0 +1,138 @@
+<!--./Directory.Build.props-->
+<Project>
+
+    <PropertyGroup Label="SolutionVariables">
+        <_Name>ImeiType</_Name>
+        <_Company>BMTLab</_Company>
+        <_TestNamespace>Tests</_TestNamespace>
+    </PropertyGroup>
+
+    <PropertyGroup Label="AssemblyInfo">
+        <AssemblyName Condition="'$(AssemblyName)' == ''">$(_Company).$(MSBuildProjectName)</AssemblyName>
+        <Title Condition="'$(Title)' == ''">$(AssemblyName)</Title>
+        <Product Condition="'$(Product)' == ''">$(AssemblyName)</Product>
+        <RootNamespace Condition="'$(RootNamespace)' == ''">$(AssemblyName)</RootNamespace>
+        <Deterministic>true</Deterministic>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <Description>
+            Provides a strongly-typed IMEI (International Mobile Equipment Identity) struct for .NET applications,
+            offering methods for validation, parsing, and generation of IMEI numbers.
+            This package enhances type safety and reduces errors when handling IMEI values.
+        </Description>
+    </PropertyGroup>
+
+    <PropertyGroup Label="Package">
+        <Company>$(_Company)</Company>
+        <Authors>Nikita Neverov</Authors>
+        <Copyright>Copyright $(_Company) © $([System.DateTime]::Now.Date.Year)</Copyright>
+        <RepositoryType>git</RepositoryType>
+        <RepositoryName>$(_Name)</RepositoryName>
+        <PackageDescription>$(_Description)</PackageDescription>
+        <RepositoryUrl>https://github.com/$(_Company)/$(RepositoryName)</RepositoryUrl>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
+        <PackageId Condition="'$(PackageId)' == ''">$(AssemblyInfo)</PackageId>
+        <PackageTags>imei mobile equipment identity type</PackageTags>
+        <PackageIcon>icon.png</PackageIcon>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+        <PackageReleaseNotes Condition="'$(Configuration)'!='Release'">
+            Dev Version
+        </PackageReleaseNotes>
+        <PackageReleaseNotes Condition="'$(Configuration)'=='Release'">
+            Release
+        </PackageReleaseNotes>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <AllowedOutputExtensionsInPackageBuildOutputFolder>
+            $(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb
+        </AllowedOutputExtensionsInPackageBuildOutputFolder>
+
+        <!-- Overridden in underlying configuration files -->
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <PropertyGroup Label="Framework">
+        <LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
+        <RunAnalyzersDuringLiveAnalysis>true</RunAnalyzersDuringLiveAnalysis>
+        <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+        <AnalysisLevel>preview</AnalysisLevel>
+    </PropertyGroup>
+
+    <PropertyGroup Label="ArtifactDirectory">
+        <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
+        <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+        <DebugSymbols>true</DebugSymbols>
+        <DebugType>full</DebugType>
+        <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+        <Optimize>false</Optimize>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)'=='Release'">
+        <DebugSymbols>true</DebugSymbols>
+        <DebugType>pdbonly</DebugType>
+        <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+        <Optimize>true</Optimize>
+        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    </PropertyGroup>
+
+    <ItemGroup Label="Annotations">
+        <PackageReference Include="JetBrains.Annotations">
+            <PrivateAssets>All</PrivateAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup Label="Analyzers">
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers">
+            <PrivateAssets>All</PrivateAssets>
+        </PackageReference>
+        <PackageReference Include="SonarAnalyzer.CSharp">
+            <PrivateAssets>All</PrivateAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup Label="SourceLink">
+        <SourceRoot Include="$(MSBuildThisFileDirectory)/"/>
+        <PackageReference Include="Microsoft.SourceLink.GitHub">
+            <PrivateAssets>All</PrivateAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup Label="Versioning">
+        <PackageReference Include="GitVersion.MsBuild">
+            <PrivateAssets>All</PrivateAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup Label="GlobalUsings">
+        <Using Include="System.Diagnostics"/>
+        <Using Include="System.Diagnostics.CodeAnalysis"/>
+        <Using Include="System.Runtime.InteropServices"/>
+    </ItemGroup>
+
+    <ItemGroup Label="Docs">
+        <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath=""/>
+        <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath=""/>
+        <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath=""/>
+        <None Include="$(MSBuildThisFileDirectory)SECURITY.md" Pack="true" PackagePath=""/>
+    </ItemGroup>
+
+    <PropertyGroup Label="CI">
+        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    </PropertyGroup>
+
+    <ItemGroup Label="EditorConfig">
+        <EditorConfigFiles Update=".editorconfig">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </EditorConfigFiles>
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,20 @@
+<!--./src/Directory.Build.props-->
+<Project>
+
+    <Import Project="$([MSBuild]::GetPathOfFileAbove(Directory.Build.props, $(MSBuildThisFileDirectory)..))"/>
+
+    <PropertyGroup Label="Framework">
+        <TargetFrameworks>net9.0;net8.0;net7.0;net6.0;netstandard2.1</TargetFrameworks>
+        <WarningLevel>3</WarningLevel>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    </PropertyGroup>
+
+    <PropertyGroup Label="Package">
+        <IsPackable>true</IsPackable>
+        <EnablePackageValidation>true</EnablePackageValidation>
+
+        <!-- Optional: Detect breaking changes from a previous version -->
+        <!-- <PackageValidationBaselineVersion>1.0.0</PackageValidationBaselineVersion> -->
+    </PropertyGroup>
+
+</Project>

@@ -1,0 +1,63 @@
+# .github/workflows/ci-analyze.yml
+name: Analyze CI
+
+on:
+  workflow_call:
+
+  workflow_dispatch:
+
+  schedule: # weekly launch on Wednesdays at 19:00 UTC
+    - cron: '0 19 * * 3'
+
+jobs:
+  codeql:
+    name: CodeQL
+    if: ${{ vars.ENABLE_CODEQL_ANALYSIS == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: ⚙ Checkout
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 2
+
+      - name: ⚙ Checkout PR
+        if: ${{ github.event_name == 'pull_request' }}
+        run: git checkout HEAD^2
+
+      - name: 🫙 Initialize CodeQL
+        uses: github/codeql-action/init@v3.28.9
+        with:
+          languages: csharp
+
+      - name: 🛠️ Autobuild
+        uses: github/codeql-action/autobuild@v3.28.9
+
+      - name: 🩻 Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3.28.9
+
+  dotnet-format:
+    name: .NET Analyzers
+    if: ${{ vars.ENABLE_DOTNET_ANALYSIS == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: ⚙ Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: ⚙ Setup .NET (for dotnet format)
+        uses: actions/setup-dotnet@v4.3.0
+        with:
+          dotnet-version: 9.0.x
+
+      - name: 🩻 Perform .NET Analysis
+        run: |
+          # The results of the analysis are usually strange, 
+          # just get the warning messages and double-check yourself:
+          dotnet format analyzers \
+            --severity info \
+            --verify-no-changes \
+            --include src
+        continue-on-error: true

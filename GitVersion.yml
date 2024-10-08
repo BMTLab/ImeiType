@@ -1,0 +1,182 @@
+# GitVersion configuration (using a minimal GitFlow-like approach).
+# 
+# This file sets how to calculate version numbers across different Git branches:
+#  - main (stable releases, Patch increment by default),
+#  - develop (pre-release: alpha, Minor increment),
+#  - release (pre-release: beta),
+#  - feature (inherits version rules from parent, uses branch name as a label),
+#  - hotfix (pre-release: rc),
+#  - pull-request (label: pr, inherits increment),
+#  - unknown (fallback for any other branch).
+#
+# Global defaults are at the end of the file (e.g., mode = ContinuousDelivery).
+
+assembly-versioning-scheme: MajorMinorPatch
+assembly-file-versioning-scheme: MajorMinorPatch
+tag-prefix: '[vV]?'
+major-version-bump-message: (?s).*\\+semver:\\s?(breaking|major).*
+minor-version-bump-message: (?s).*\\+semver:\\s?(feature|minor).*
+patch-version-bump-message: (?s).*\\+semver:\\s?(fix|patch).*
+no-bump-message: (?s).*\\+semver:\\s?(none|skip).*
+tag-pre-release-weight: 60000
+commit-date-format: yyyy-MM-dd
+merge-message-formats: { }
+update-build-number: true
+semantic-version-format: Strict
+strategies:
+  # Fallback: ensures a version is generated even if no tag or commit indicates a change.
+  - Fallback
+  # ConfiguredNextVersion: allows manually specifying the next version in config (if used).
+  - ConfiguredNextVersion
+  # MergeMessage: increments version based on +semver: markers in merge commits.
+  - MergeMessage
+  # TaggedCommit: uses commit tags (e.g., v1.2.3) to anchor version numbers.
+  - TaggedCommit
+  # TrackReleaseBranches: detects release branches and increments version accordingly.
+  - TrackReleaseBranches
+  # VersionInBranchName: extracts version if branch name contains something like v1.2.3.
+  - VersionInBranchName
+
+branches:
+  develop:
+    mode: ContinuousDelivery
+    label: alpha
+    increment: Minor
+    prevent-increment:
+      when-current-commit-tagged: false
+    track-merge-target: true
+    track-merge-message: true
+    regex: ^dev$
+    source-branches:
+      - main
+    is-source-branch-for: [ ]
+    tracks-release-branches: true
+    is-release-branch: false
+    is-main-branch: false
+    pre-release-weight: 0
+
+  main:
+    # Stable branch: uses patch increment by default, no label
+    label: ''
+    increment: Patch
+    prevent-increment:
+      of-merged-branch: true
+    track-merge-target: false
+    track-merge-message: true
+    regex: ^main$
+    source-branches: [ ]
+    is-source-branch-for: [ ]
+    tracks-release-branches: false
+    is-release-branch: false
+    is-main-branch: true
+    pre-release-weight: 55000
+
+  release:
+    # Release branches: pre-release label "rc", Minor increment
+    mode: ManualDeployment
+    label: rc
+    increment: Minor
+    prevent-increment:
+      of-merged-branch: true
+      when-current-commit-tagged: false
+    track-merge-target: false
+    regex: ^releases?[/-](?<BranchName>.+)
+    source-branches:
+      - main
+    is-source-branch-for: [ ]
+    tracks-release-branches: false
+    is-main-branch: false
+    is-release-branch: true
+    pre-release-weight: 30000
+
+  feature:
+    # Feature branches: label = branch name, inherits version increment from parent
+    mode: ManualDeployment
+    label: '{BranchName}'
+    increment: Inherit
+    prevent-increment:
+      when-current-commit-tagged: false
+    track-merge-message: true
+    regex: ^features?[/-](?<BranchName>.+)
+    source-branches:
+      - develop
+      - main
+      - release
+      - hotfix
+    is-source-branch-for: [ ]
+    is-main-branch: false
+    pre-release-weight: 30000
+
+  pull-request:
+    # PR branches: label "pr", inherits increment, includes PR number if matched
+    mode: ContinuousDelivery
+    label: pr
+    increment: Inherit
+    prevent-increment:
+      of-merged-branch: true
+      when-current-commit-tagged: false
+    label-number-pattern: '[/-](?<number>\d+)'
+    track-merge-message: true
+    regex: ^(pull|pull\-requests|pr)[/-]
+    source-branches:
+      - develop
+      - main
+      - release
+      - feature
+      - hotfix
+    is-source-branch-for: [ ]
+    pre-release-weight: 30000
+
+  hotfix:
+    # Hotfix branches: label "beta", inherits increment from parent
+    mode: ManualDeployment
+    label: beta
+    increment: Inherit
+    prevent-increment:
+      when-current-commit-tagged: false
+    regex: ^hotfix(es)?[/-](?<BranchName>.+)
+    source-branches:
+      - main
+    is-source-branch-for: [ ]
+    is-release-branch: true
+    is-main-branch: false
+    pre-release-weight: 30000
+
+  unknown:
+    # Fallback for branches not matching any other regex
+    mode: ManualDeployment
+    label: '{BranchName}'
+    increment: Inherit
+    prevent-increment:
+      when-current-commit-tagged: true
+    regex: (?<BranchName>.+)
+    source-branches:
+      - main
+      - develop
+      - release
+      - feature
+      - pull-request
+      - hotfix
+    is-source-branch-for: [ ]
+    is-main-branch: false
+
+# Global defaults (applied if not overridden by branch-specific settings)
+mode: ContinuousDelivery
+label: '{BranchName}'
+increment: Inherit
+prevent-increment:
+  of-merged-branch: false
+  when-branch-merged: false
+  when-current-commit-tagged: true
+track-merge-target: false
+track-merge-message: true
+commit-message-incrementing: Enabled
+regex: ''
+source-branches: [ ]
+is-source-branch-for: [ ]
+tracks-release-branches: false
+is-release-branch: false
+is-main-branch: false
+
+ignore:
+  sha: [ ]

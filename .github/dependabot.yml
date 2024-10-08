@@ -1,0 +1,36 @@
+# .github/dependabot.yml
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: '/'
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+      include: scope
+    target-branch: dev
+    open-pull-requests-limit: 10
+    reviewers:
+      - BMTLab
+    labels:
+      - dependencies
+      - dotnet
+    assignees:
+      - BMTLab
+
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+      include: scope
+    target-branch: dev
+    open-pull-requests-limit: 10
+    reviewers:
+      - BMTLab
+    labels:
+      - dependencies
+      - github-actions
+    assignees:
+      - BMTLab

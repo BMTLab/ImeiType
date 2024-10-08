@@ -1,0 +1,13 @@
+﻿<!--./samples/ImeiType.Samples/ImeiType.Samples.csproj-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup Label="Framework">
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net9.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\ImeiType\ImeiType.csproj"/>
+    </ItemGroup>
+
+</Project>
