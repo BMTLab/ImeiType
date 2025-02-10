@@ -12,7 +12,7 @@ jobs:
     continue-on-error: true
 
     steps:
-      - name: 📥 Download Coverage Artifact
+      - name: 📥 Download Coverage Artifacts
         uses: actions/download-artifact@v4
         with:
           name: coverage-report-${{ github.sha }}
