@@ -19,7 +19,7 @@
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.0.2" />
     <!-- Since the version 8.0.0 FluentAssertions has a non-free license -->
-    <PackageVersion Include="FluentAssertions" Version="[7.0.0]" />
+    <PackageVersion Include="FluentAssertions" Version="[8.1.1]" />
     <PackageVersion Include="NSubstitute" Version="5.1.0" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <PackageVersion Include="coverlet.msbuild" Version="6.0.4" />
