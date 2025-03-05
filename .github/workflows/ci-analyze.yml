@@ -27,15 +27,15 @@ jobs:
         run: git checkout HEAD^2
 
       - name: 🫙 Initialize CodeQL
-        uses: github/codeql-action/init@v3.28.9
+        uses: github/codeql-action/init@v3.28.10
         with:
           languages: csharp
 
       - name: 🛠️ Autobuild
-        uses: github/codeql-action/autobuild@v3.28.9
+        uses: github/codeql-action/autobuild@v3.28.10
 
       - name: 🩻 Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3.28.9
+        uses: github/codeql-action/analyze@v3.28.10
 
   dotnet-format:
     name: .NET Analyzers
