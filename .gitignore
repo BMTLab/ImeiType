@@ -52,6 +52,7 @@ bld/
 [Ll]og/
 [Ll]ogs/
 [Mm][Ss][Bb]uild*/
+.AssemblyAttributes
 
 # IDEs
 .vs/

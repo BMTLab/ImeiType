@@ -1,17 +1,16 @@
-<!--./Directory.Build.props-->
+<!-- ./Directory.Build.props -->
 <Project>
 
-    <PropertyGroup Label="SolutionVariables">
+    <PropertyGroup Label="SolutionConfig">
         <_Name>ImeiType</_Name>
         <_Company>BMTLab</_Company>
-        <_TestNamespace>Tests</_TestNamespace>
     </PropertyGroup>
 
     <PropertyGroup Label="AssemblyInfo">
-        <AssemblyName Condition="'$(AssemblyName)' == ''">$(_Company).$(MSBuildProjectName)</AssemblyName>
-        <Title Condition="'$(Title)' == ''">$(AssemblyName)</Title>
-        <Product Condition="'$(Product)' == ''">$(AssemblyName)</Product>
-        <RootNamespace Condition="'$(RootNamespace)' == ''">$(AssemblyName)</RootNamespace>
+        <AssemblyName Condition="'$(AssemblyName)'==''">$(_Company).$(MSBuildProjectName)</AssemblyName>
+        <Title Condition="'$(Title)'==''">$(AssemblyName)</Title>
+        <Product Condition="'$(Product)'==''">$(AssemblyName)</Product>
+        <RootNamespace Condition="'$(RootNamespace)'==''">$(AssemblyName)</RootNamespace>
         <Deterministic>true</Deterministic>
         <InvariantGlobalization>true</InvariantGlobalization>
         <Description>
@@ -21,7 +20,7 @@
         </Description>
     </PropertyGroup>
 
-    <PropertyGroup Label="Package">
+    <PropertyGroup Label="PackageConfig">
         <Company>$(_Company)</Company>
         <Authors>Nikita Neverov</Authors>
         <Copyright>Copyright $(_Company) © $([System.DateTime]::Now.Date.Year)</Copyright>
@@ -49,12 +48,9 @@
         <AllowedOutputExtensionsInPackageBuildOutputFolder>
             $(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb
         </AllowedOutputExtensionsInPackageBuildOutputFolder>
-
-        <!-- Overridden in underlying configuration files -->
-        <IsPackable>false</IsPackable>
     </PropertyGroup>
 
-    <PropertyGroup Label="Framework">
+    <PropertyGroup Label="FrameworkConfig">
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -62,21 +58,17 @@
         <RunAnalyzersDuringLiveAnalysis>true</RunAnalyzersDuringLiveAnalysis>
         <AnalysisMode>AllEnabledByDefault</AnalysisMode>
         <AnalysisLevel>preview</AnalysisLevel>
-    </PropertyGroup>
-
-    <PropertyGroup Label="ArtifactDirectory">
         <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
         <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <PropertyGroup Label="BuildConfig" Condition="'$(Configuration)'=='Debug'">
         <DebugSymbols>true</DebugSymbols>
         <DebugType>full</DebugType>
-        <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
-        <Optimize>false</Optimize>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <PropertyGroup Label="BuildConfig" Condition="'$(Configuration)'=='Release'">
         <DebugSymbols>true</DebugSymbols>
         <DebugType>pdbonly</DebugType>
         <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
@@ -84,50 +76,37 @@
         <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
     </PropertyGroup>
 
-    <ItemGroup Label="Annotations">
-        <PackageReference Include="JetBrains.Annotations">
+    <ItemGroup Label="CommonReferences">
+        <SourceRoot Include="$(MSBuildThisFileDirectory)/"/>
+        <PackageReference Include="Microsoft.SourceLink.GitHub">
             <PrivateAssets>All</PrivateAssets>
         </PackageReference>
-    </ItemGroup>
-
-    <ItemGroup Label="Analyzers">
+        <PackageReference Include="GitVersion.MsBuild">
+            <PrivateAssets>All</PrivateAssets>
+        </PackageReference>
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers">
             <PrivateAssets>All</PrivateAssets>
         </PackageReference>
         <PackageReference Include="SonarAnalyzer.CSharp">
             <PrivateAssets>All</PrivateAssets>
         </PackageReference>
-    </ItemGroup>
-
-    <ItemGroup Label="SourceLink">
-        <SourceRoot Include="$(MSBuildThisFileDirectory)/"/>
-        <PackageReference Include="Microsoft.SourceLink.GitHub">
+        <PackageReference Include="JetBrains.Annotations">
             <PrivateAssets>All</PrivateAssets>
         </PackageReference>
     </ItemGroup>
 
-    <ItemGroup Label="Versioning">
-        <PackageReference Include="GitVersion.MsBuild">
-            <PrivateAssets>All</PrivateAssets>
-        </PackageReference>
-    </ItemGroup>
-
-    <ItemGroup Label="GlobalUsings">
+    <ItemGroup Label="GlobalUsingsConfig">
         <Using Include="System.Diagnostics"/>
         <Using Include="System.Diagnostics.CodeAnalysis"/>
         <Using Include="System.Runtime.InteropServices"/>
     </ItemGroup>
 
-    <ItemGroup Label="Docs">
+    <ItemGroup Label="AdditionalItemsConfig">
         <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath=""/>
         <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath=""/>
         <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath=""/>
         <None Include="$(MSBuildThisFileDirectory)SECURITY.md" Pack="true" PackagePath=""/>
     </ItemGroup>
-
-    <PropertyGroup Label="CI">
-        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-    </PropertyGroup>
 
     <ItemGroup Label="EditorConfig">
         <EditorConfigFiles Update=".editorconfig">

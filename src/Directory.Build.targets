@@ -1,22 +1,30 @@
-<!--./src/Directory.Build.targets-->
+<!-- ./src/Directory.Build.targets -->
 <Project>
 
+    <!-- Load common targets for all projects from the repository root -->
     <Import Project="$([MSBuild]::GetPathOfFileAbove(Directory.Build.targets, $(MSBuildThisFileDirectory)..))"/>
 
-    <PropertyGroup>
-        <EmbedUntrackedSources>true</EmbedUntrackedSources>
-        <TargetFrameworkMonikerAssemblyAttributesPath>
-            $([System.IO.Path]::Combine('$(IntermediateOutputPath)','$(TargetFrameworkMoniker).AssemblyAttributes$(DefaultLanguageSourceExtension)'))
-        </TargetFrameworkMonikerAssemblyAttributesPath>
-    </PropertyGroup>
+    <!-- Task that makes internal members of a main project visible to test projects -->
+    <Target
+        Name="_InternalLinking"
+        Condition="!$(MSBuildProjectName.Contains('Test')) And !$(MSBuildProjectName.Contains('Sample'))"
+        BeforeTargets="BeforeCompile">
 
-    <ItemGroup>
-        <EmbeddedFiles Include="$(GeneratedAssemblyInfoFile)"/>
-    </ItemGroup>
+        <PropertyGroup>
+            <TestNamespace>Tests</TestNamespace>
+            <EmbedUntrackedSources>true</EmbedUntrackedSources>
+            <TargetFrameworkMonikerAssemblyAttributesPath>
+                $([System.IO.Path]::Combine('$(IntermediateOutputPath)','$(TargetFrameworkMoniker).AssemblyAttributes$(DefaultLanguageSourceExtension)'))
+            </TargetFrameworkMonikerAssemblyAttributesPath>
+        </PropertyGroup>
 
-    <ItemGroup>
-        <InternalsVisibleTo Include="$(AssemblyName).$(_TestNamespace).Unit"/>
-        <InternalsVisibleTo Include="$(AssemblyName).$(_TestNamespace).Benchmarks"/>
-    </ItemGroup>
+        <ItemGroup>
+            <EmbeddedFiles Include="$(GeneratedAssemblyInfoFile)"/>
+        </ItemGroup>
 
+        <ItemGroup>
+            <InternalsVisibleTo Include="$(AssemblyName).$(TestNamespace).Unit"/>
+            <InternalsVisibleTo Include="$(AssemblyName).$(TestNamespace).Benchmarks"/>
+        </ItemGroup>
+    </Target>
 </Project>

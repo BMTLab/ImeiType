@@ -30,6 +30,8 @@ jobs:
         with:
           dotnet-version: |
             9.0.x
+            8.0.x
+            7.0.x
             6.0.x
           cache: true
           cache-dependency-path: '**/packages.lock.json'
@@ -57,7 +59,7 @@ jobs:
         run: |
           chmod +x scripts/clean.sh || true
           ./scripts/clean.sh || true
-          dotnet build -c Release -v detailed
+          dotnet build -c Release -v normal
 
       - name: 🧪 Run Tests
         run: |

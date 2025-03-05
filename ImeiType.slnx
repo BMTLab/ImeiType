@@ -1,0 +1,26 @@
+﻿<Solution>
+  <Folder Name="/config/">
+    <File Path="global.json" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="GitVersion.yml" />
+    <File Path=".config\dotnet-tools.json" />
+    <File Path=".gitattributes" />
+    <File Path=".gitignore" />
+  </Folder>
+  <Folder Name="/scripts/">
+    <File Path="scripts\clean.sh" />
+    <File Path="scripts\clean.ps1" />
+  </Folder>
+  <Folder Name="/src/">
+    <File Path="src\Directory.Build.props" />
+    <File Path="src\Directory.Build.targets" />
+  </Folder>
+  <Folder Name="/src/ImeiType/">
+    <Project Path="src\Core\ImeiType.Samples\ImeiType.Samples.csproj" Type="Classic C#" />
+    <Project Path="src\Core\ImeiType.Tests.Benchmarks\ImeiType.Tests.Benchmarks.csproj" Type="Classic C#" />
+    <Project Path="src\Core\ImeiType.Tests.Unit\ImeiType.Tests.Unit.csproj" Type="Classic C#" />
+    <Project Path="src\Core\ImeiType\ImeiType.csproj" Type="Classic C#" />
+  </Folder>
+</Solution>

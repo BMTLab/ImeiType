@@ -5,5 +5,5 @@ using BMTLab.ImeiType.Tests.Benchmarks;
 
 BenchmarkRunner.Run<NewRandomImeiBenchmark>();
 #else
-Console.WriteLine("Skipping benchmarks test with DEBUG configuration");
+await Console.Error.WriteLineAsync("Skipping benchmarks test with DEBUG configuration");
 #endif
