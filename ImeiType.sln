@@ -1,14 +1,21 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{9279C13D-78E5-4625-9512-D89504159546}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "config", "config", "{1CB47DD9-6C35-44BA-810F-C474B693DAA3}"
 	ProjectSection(SolutionItems) = preProject
-		src\Directory.Build.targets = src\Directory.Build.targets
-		src\Directory.Build.props = src\Directory.Build.props
+		global.json = global.json
+		Directory.Build.props = Directory.Build.props
+		Directory.Packages.props = Directory.Packages.props
+		Directory.Build.targets = Directory.Build.targets
+		GitVersion.yml = GitVersion.yml
+		.config\dotnet-tools.json = .config\dotnet-tools.json
+		.gitattributes = .gitattributes
+		.gitignore = .gitignore
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{F9DCCAF9-B40B-4EB6-AA92-34FEB8AA0E76}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{9279C13D-78E5-4625-9512-D89504159546}"
 	ProjectSection(SolutionItems) = preProject
-		tests\Directory.Build.props = tests\Directory.Build.props
+		src\Directory.Build.props = src\Directory.Build.props
+		src\Directory.Build.targets = src\Directory.Build.targets
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{78F575C1-9409-4039-AFB6-4747517810CD}"
@@ -17,26 +24,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{78F5
 		scripts\clean.ps1 = scripts\clean.ps1
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImeiType", "src\ImeiType\ImeiType.csproj", "{18721321-20C8-424A-BA13-EF85217504F4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImeiType", "src\Core\ImeiType\ImeiType.csproj", "{18721321-20C8-424A-BA13-EF85217504F4}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "config", "config", "{1CB47DD9-6C35-44BA-810F-C474B693DAA3}"
-	ProjectSection(SolutionItems) = preProject
-		global.json = global.json
-		Directory.Build.props = Directory.Build.props
-		Directory.Packages.props = Directory.Packages.props
-		.config\dotnet-tools.json = .config\dotnet-tools.json
-		GitVersion.yml = GitVersion.yml
-		.gitattributes = .gitattributes
-		.gitignore = .gitignore
-	EndProjectSection
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImeiType.Tests.Benchmarks", "src\Core\ImeiType.Tests.Benchmarks\ImeiType.Tests.Benchmarks.csproj", "{B4BD4AE8-1193-45BD-9553-1DC2C84B6BD8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImeiType.Tests.Benchmarks", "tests\ImeiType.Tests.Benchmarks\ImeiType.Tests.Benchmarks.csproj", "{B4BD4AE8-1193-45BD-9553-1DC2C84B6BD8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImeiType.Tests.Unit", "src\Core\ImeiType.Tests.Unit\ImeiType.Tests.Unit.csproj", "{BB04AE29-306F-4F16-A87C-E6B80CA90505}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImeiType.Tests.Unit", "tests\ImeiType.Tests.Unit\ImeiType.Tests.Unit.csproj", "{BB04AE29-306F-4F16-A87C-E6B80CA90505}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImeiType.Samples", "src\Core\ImeiType.Samples\ImeiType.Samples.csproj", "{E0D4B1DC-ED0F-4C50-85FA-F3093B8CCF22}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{6DE849D3-65DA-45A6-A6E1-FE9BFEA7565D}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImeiType.Samples", "samples\ImeiType.Samples\ImeiType.Samples.csproj", "{E0D4B1DC-ED0F-4C50-85FA-F3093B8CCF22}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ImeiType", "ImeiType", "{A8AAD05C-1AA7-485A-95E6-4ACF6F8CA510}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -44,10 +40,11 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{18721321-20C8-424A-BA13-EF85217504F4} = {9279C13D-78E5-4625-9512-D89504159546}
-		{B4BD4AE8-1193-45BD-9553-1DC2C84B6BD8} = {F9DCCAF9-B40B-4EB6-AA92-34FEB8AA0E76}
-		{BB04AE29-306F-4F16-A87C-E6B80CA90505} = {F9DCCAF9-B40B-4EB6-AA92-34FEB8AA0E76}
-		{E0D4B1DC-ED0F-4C50-85FA-F3093B8CCF22} = {6DE849D3-65DA-45A6-A6E1-FE9BFEA7565D}
+		{A8AAD05C-1AA7-485A-95E6-4ACF6F8CA510} = {9279C13D-78E5-4625-9512-D89504159546}
+		{18721321-20C8-424A-BA13-EF85217504F4} = {A8AAD05C-1AA7-485A-95E6-4ACF6F8CA510}
+		{E0D4B1DC-ED0F-4C50-85FA-F3093B8CCF22} = {A8AAD05C-1AA7-485A-95E6-4ACF6F8CA510}
+		{B4BD4AE8-1193-45BD-9553-1DC2C84B6BD8} = {A8AAD05C-1AA7-485A-95E6-4ACF6F8CA510}
+		{BB04AE29-306F-4F16-A87C-E6B80CA90505} = {A8AAD05C-1AA7-485A-95E6-4ACF6F8CA510}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{18721321-20C8-424A-BA13-EF85217504F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU

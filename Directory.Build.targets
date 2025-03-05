@@ -1,15 +1,17 @@
-<!--./Directory.Build.targets-->
+<!-- ./Directory.Build.targets -->
 <Project>
 
     <PropertyGroup>
         <VersionFile>VERSION.g.txt</VersionFile>
     </PropertyGroup>
 
-    <Target Name="_StartBuild" BeforeTargets="Build">
-        <Message Text="$(AssemblyName) $(Version) is building" Importance="High"/>
+    <Target Name="_StartBuild"
+            BeforeTargets="Build">
+        <Message Text="------- $(AssemblyName):$(Version) is building" Importance="High"/>
     </Target>
 
-    <Target Name="_EndBuild" AfterTargets="_StartBuild">
+    <Target Name="_EndBuild"
+            AfterTargets="_StartBuild">
         <WriteLinesToFile
             File="$(VersionFile)"
             Lines="$(Version)"

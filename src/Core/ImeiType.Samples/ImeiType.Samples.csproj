@@ -1,0 +1,8 @@
+﻿<!-- ./src/Core/ImeiType.Samples/ImeiType.Samples.csproj -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup Label="ProjectReferences">
+        <ProjectReference Include="..\ImeiType\ImeiType.csproj" />
+    </ItemGroup>
+
+</Project>

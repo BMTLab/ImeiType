@@ -1,20 +1,66 @@
-<!--./src/Directory.Build.props-->
+<!-- ./src/Directory.Build.props -->
 <Project>
 
+    <!-- Load common properties for all projects from the repository root -->
     <Import Project="$([MSBuild]::GetPathOfFileAbove(Directory.Build.props, $(MSBuildThisFileDirectory)..))"/>
 
-    <PropertyGroup Label="Framework">
-        <TargetFrameworks>net9.0;net8.0;net7.0;net6.0;netstandard2.1</TargetFrameworks>
-        <WarningLevel>3</WarningLevel>
-        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <PropertyGroup Label="ProjectTypeConfig">
+        <IsTestProject>$(MSBuildProjectName.Contains('Test'))</IsTestProject>
+        <IsSampleProject>$(MSBuildProjectName.Contains('Sample'))</IsSampleProject>
+        <IsPackable Condition="'$(IsTestProject)'!='true' And '$(IsSampleProject)'!='true'">true</IsPackable>
     </PropertyGroup>
 
-    <PropertyGroup Label="Package">
-        <IsPackable>true</IsPackable>
-        <EnablePackageValidation>true</EnablePackageValidation>
+    <!--
+        We place the main package projects and their related test and sample projects side by side in separate directories,
+        making maintenance easier compared to a vertical structure with shared src/** and tests/**.
+        We also want to centrally manage the build properties of these projects based on their type, which keeps changes consistent.
+        Ideally, we would have a separate *.props file for each project type,
+        but that would complicate reading, so we use the <Choose> construct here.
+    -->
+    <Choose>
+        <When Condition="'$(IsTestProject)'=='true'">
+            <PropertyGroup Label="FrameworkConfig">
+                <TargetFrameworks>net9.0;net8.0;net7.0;net6.0</TargetFrameworks>
+                <GenerateDocumentationFile>false</GenerateDocumentationFile>
+                <NoWarn>$(NoWarn);CA1707</NoWarn> <!-- Remove underscore in method name -->
+            </PropertyGroup>
 
-        <!-- Optional: Detect breaking changes from a previous version -->
-        <!-- <PackageValidationBaselineVersion>1.0.0</PackageValidationBaselineVersion> -->
-    </PropertyGroup>
+            <ItemGroup Label="CommonTestReferences">
+                <PackageReference Include="FluentAssertions"/>
+                <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+                <PackageReference Include="xunit"/>
+                <PackageReference Include="xunit.runner.visualstudio"/>
+                <PackageReference Include="coverlet.collector"/>
+                <PackageReference Include="coverlet.msbuild"/>
+                <PackageReference Include="GitHubActionsTestLogger"/>
+            </ItemGroup>
+
+            <ItemGroup Label="GlobalUsingsConfig">
+                <Using Include="Xunit"/>
+                <Using Include="FluentAssertions"/>
+            </ItemGroup>
+        </When>
+        <When Condition="'$(IsSampleProject)'=='true'">
+            <PropertyGroup Label="FrameworkConfig">
+                <OutputType>Exe</OutputType>
+                <TargetFramework>net9.0</TargetFramework>
+                <GenerateDocumentationFile>false</GenerateDocumentationFile>
+            </PropertyGroup>
+        </When>
+        <!-- Packable project type to be published on NuGet -->
+        <Otherwise>
+            <PropertyGroup Label="FrameworkConfig">
+                <TargetFrameworks>net9.0;net8.0;net7.0;net6.0;netstandard2.1</TargetFrameworks>
+                <WarningLevel>4</WarningLevel>
+                <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+            </PropertyGroup>
+
+            <PropertyGroup Label="PackageConfig">
+                <EnablePackageValidation>true</EnablePackageValidation>
+                <!-- Optional: Detect breaking changes from a previous version -->
+                <!-- <PackageValidationBaselineVersion>1.0.0</PackageValidationBaselineVersion> -->
+            </PropertyGroup>
+        </Otherwise>
+    </Choose>
 
 </Project>

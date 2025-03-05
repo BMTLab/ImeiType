@@ -1,0 +1,8 @@
+﻿<!-- ./src/Core/ImeiType.Tests.Unit/ImeiType.Tests.Unit.csproj -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <ProjectReference Include="..\ImeiType\ImeiType.csproj" />
+    </ItemGroup>
+
+</Project>
