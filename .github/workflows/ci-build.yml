@@ -57,7 +57,7 @@ jobs:
         run: |
           chmod +x scripts/clean.sh || true
           ./scripts/clean.sh || true
-          dotnet build -c Release -v detailed
+          dotnet build -c Release -v normal
 
       - name: 🧪 Run Tests
         run: |
