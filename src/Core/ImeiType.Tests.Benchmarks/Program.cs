@@ -1,5 +1,3 @@
-[assembly: SuppressMessage("ReSharper", "ClassNeverInstantiated.Global")]
-
 #if RELEASE
 using BenchmarkDotNet.Running;
 
