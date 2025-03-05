@@ -1,0 +1,8 @@
+﻿<!-- ./src/SystemTextJson/ImeiType.SystemTextJson.Tests.Unit/ImeiType.SystemTextJson.Tests.Unit.csproj -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup Label="ProjectReferences">
+        <ProjectReference Include="..\ImeiType.SystemTextJson\ImeiType.SystemTextJson.csproj"/>
+    </ItemGroup>
+
+</Project>
