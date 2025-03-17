@@ -26,7 +26,6 @@ public class JsonImeiConverter : JsonConverter<Imei>
     ///     uses <see cref="JsonSerializerOptions.NumberHandling" /> to decide if the <see cref="Imei" />
     ///     is written as a numeric value or a string.
     /// </remarks>
-    [PublicAPI]
     [DefaultValue(JsonImeiWriteOptions.Default)]
     public JsonImeiWriteOptions WriteOptions { get; init; } = JsonImeiWriteOptions.Default;
 
