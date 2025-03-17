@@ -24,8 +24,11 @@ public class JsonImeiConverterSerializationTests
         }.WithImeiConverter(imeiWriteOptions);
 
 
+    /// <summary>
+    ///     Method needed only for a correct and convenient way to compose a expected JSON value.
+    /// </summary>
     [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance")]
-    private static object WriteImeiAs(Type type, long val)
+    private static object WriteImeiAs(Type type, in long val)
     {
         if (type == typeof(string))
         {
