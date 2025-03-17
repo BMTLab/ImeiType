@@ -50,12 +50,12 @@ public enum JsonImeiWriteOptions
     Default = 0,
 
     /// <summary>
-    ///     Always writes the <see cref="Imei" /> as a numeric (for example, <c>356303489916807</c>).
+    ///     Always writes the <see cref="Imei" /> as a numeric (for example, <c>{"val": 356303489916807}</c>).
     /// </summary>
     ForceWriteAsNumber,
 
     /// <summary>
-    ///     Always writes the <see cref="Imei" /> as a string (for example, <c>"356303489916807"</c>).
+    ///     Always writes the <see cref="Imei" /> as a string (for example, <c>{"val": "356303489916807"}</c>).
     /// </summary>
     ForceWriteAsString
 }
