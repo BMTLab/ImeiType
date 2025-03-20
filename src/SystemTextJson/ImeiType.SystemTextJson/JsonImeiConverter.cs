@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 using JetBrains.Annotations;
+
+using static BMTLab.ImeiType.SystemTextJson.JsonImeiWriteOptions;
 
 namespace BMTLab.ImeiType.SystemTextJson;
 
@@ -26,8 +26,8 @@ public class JsonImeiConverter : JsonConverter<Imei>
     ///     uses <see cref="JsonSerializerOptions.NumberHandling" /> to decide if the <see cref="Imei" />
     ///     is written as a numeric value or a string.
     /// </remarks>
-    [DefaultValue(JsonImeiWriteOptions.Default)]
-    public JsonImeiWriteOptions WriteOptions { get; init; } = JsonImeiWriteOptions.Default;
+    [DefaultValue(Default)]
+    public JsonImeiWriteOptions WriteOptions { get; init; } = Default;
 
 
     /// <summary>
@@ -77,25 +77,25 @@ public class JsonImeiConverter : JsonConverter<Imei>
     {
         switch (WriteOptions)
         {
-            case JsonImeiWriteOptions.ForceWriteAsNumber:
+            case ForceWriteAsNumber:
             {
                 writer.WriteNumberValue(imei.ToInt64());
                 return;
             }
-            case JsonImeiWriteOptions.ForceWriteAsString:
+            case ForceWriteAsString:
             {
                 writer.WriteStringValue(imei.ToReadOnlySpan());
                 return;
             }
-            case JsonImeiWriteOptions.Default:
+            case Default:
             default:
             {
                 if (options is null || !options.NumberHandling.HasFlag(JsonNumberHandling.WriteAsString))
                 {
-                    goto case JsonImeiWriteOptions.ForceWriteAsNumber;
+                    goto case ForceWriteAsNumber;
                 }
 
-                goto case JsonImeiWriteOptions.ForceWriteAsString;
+                goto case ForceWriteAsString;
             }
         }
     }
@@ -131,5 +131,5 @@ public class JsonImeiConverter : JsonConverter<Imei>
         JsonSerializerOptions options
     ) =>
         writer.WritePropertyName(imei.ToReadOnlySpan());
-#endregion
+#endregion _DicionaryKeysHandling
 }

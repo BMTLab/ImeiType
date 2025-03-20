@@ -5,8 +5,4 @@
         <ProjectReference Include="..\..\Core\ImeiType\ImeiType.csproj" />
     </ItemGroup>
 
-    <ItemGroup Label="ThirdPartyReferences">
-        <PackageReference Include="System.Text.Json" />
-    </ItemGroup>
-
 </Project>

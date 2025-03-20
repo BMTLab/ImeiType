@@ -1,14 +1,4 @@
-﻿using System.Text.Json;
-using System.Text.Json.Serialization;
-
-using BMTLab.ImeiType.SystemTextJson.Extensions;
-using BMTLab.ImeiType.SystemTextJson.Tests.Unit.Extensions;
-
-using static System.Text.Json.Serialization.JsonNumberHandling;
-
-using static BMTLab.ImeiType.SystemTextJson.JsonImeiWriteOptions;
-
-namespace BMTLab.ImeiType.SystemTextJson.Tests.Unit;
+﻿namespace BMTLab.ImeiType.SystemTextJson.Tests.Unit;
 
 public class JsonImeiConverterSerializationTests
 {
@@ -75,7 +65,7 @@ public class JsonImeiConverterSerializationTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(toSerialize, GetOptions(imeiWriteOptions, globalWriteOptions));
+        var json = Serialize(toSerialize, GetOptions(imeiWriteOptions, globalWriteOptions));
 
         // Assert
         json.Should().Be(expectedJson);
@@ -117,7 +107,7 @@ public class JsonImeiConverterSerializationTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(toSerialize, GetOptions(imeiWriteOptions, globalWriteOptions));
+        var json = Serialize(toSerialize, GetOptions(imeiWriteOptions, globalWriteOptions));
 
         // Assert
         json.Should().Be(expectedJson);
@@ -160,7 +150,7 @@ public class JsonImeiConverterSerializationTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(toSerialize, GetOptions(imeiWriteOptions, globalWriteOptions));
+        var json = Serialize(toSerialize, GetOptions(imeiWriteOptions, globalWriteOptions));
 
         // Assert
         json.Should().Be(expectedJson);
@@ -204,7 +194,7 @@ public class JsonImeiConverterSerializationTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(toSerialize, GetOptions(imeiWriteOptions, globalWriteOptions));
+        var json = Serialize(toSerialize, GetOptions(imeiWriteOptions, globalWriteOptions));
 
         // Assert
         json.Should().Be(expectedJson);

@@ -1,8 +1,4 @@
-﻿using System.Text.Json;
-
-using BMTLab.ImeiType.SystemTextJson.Extensions;
-
-namespace BMTLab.ImeiType.SystemTextJson.Tests.Unit;
+﻿namespace BMTLab.ImeiType.SystemTextJson.Tests.Unit;
 
 public class JsonImeiConverterDeserializationTests
 {
@@ -22,7 +18,7 @@ public class JsonImeiConverterDeserializationTests
             """;
 
         // Act
-        var actualObject = JsonSerializer.Deserialize<NullableImeiContainer>(toDeserialize, Options);
+        var actualObject = Deserialize<NullableImeiContainer>(toDeserialize, Options);
 
         // Assert
         actualObject
@@ -43,7 +39,7 @@ public class JsonImeiConverterDeserializationTests
             """;
 
         // Act
-        var actualObject = JsonSerializer.Deserialize<ImeiContainer>(toDeserialize, Options);
+        var actualObject = Deserialize<ImeiContainer>(toDeserialize, Options);
 
         // Assert
         actualObject
@@ -65,7 +61,7 @@ public class JsonImeiConverterDeserializationTests
             """;
 
         // Act
-        var actualObject = JsonSerializer.Deserialize<ImeiContainer>(toDeserialize, Options);
+        var actualObject = Deserialize<ImeiContainer>(toDeserialize, Options);
 
         // Assert
         actualObject
@@ -87,7 +83,7 @@ public class JsonImeiConverterDeserializationTests
             """;
 
         // Act
-        Action act = () => _ = JsonSerializer.Deserialize<ImeiContainer>(toDeserialze, Options);
+        Action act = () => _ = Deserialize<ImeiContainer>(toDeserialze, Options);
 
         // Assert
         act
@@ -108,7 +104,7 @@ public class JsonImeiConverterDeserializationTests
             """;
 
         // Act
-        var actualObject = JsonSerializer.Deserialize<NullableImeiContainer>(toDeserialize, Options);
+        var actualObject = Deserialize<NullableImeiContainer>(toDeserialize, Options);
 
         // Assert
         actualObject
@@ -130,7 +126,7 @@ public class JsonImeiConverterDeserializationTests
             """;
 
         // Act
-        var actualObject = JsonSerializer.Deserialize<NullableImeiContainer>(toDeserialize, Options);
+        var actualObject = Deserialize<NullableImeiContainer>(toDeserialize, Options);
 
         // Assert
         actualObject
@@ -155,7 +151,7 @@ public class JsonImeiConverterDeserializationTests
             """;
 
         // Act
-        var actualObject = JsonSerializer.Deserialize<ImeiListContainer>(json, Options);
+        var actualObject = Deserialize<ImeiListContainer>(json, Options);
 
         // Assert
         actualObject
@@ -183,7 +179,7 @@ public class JsonImeiConverterDeserializationTests
             """;
 
         // Act
-        var actualObject = JsonSerializer.Deserialize<ImeiDictionaryContainer<Imei, string?>>(toDeserialize, Options);
+        var actualObject = Deserialize<ImeiDictionaryContainer<Imei, string?>>(toDeserialize, Options);
 
         // Assert
         actualObject
@@ -224,7 +220,7 @@ public class JsonImeiConverterDeserializationTests
             """;
 
         // Act
-        var actualObject = JsonSerializer.Deserialize<ImeiDictionaryContainer<string, Imei?>>(toDeserialze, Options);
+        var actualObject = Deserialize<ImeiDictionaryContainer<string, Imei?>>(toDeserialze, Options);
 
         // Assert
         actualObject

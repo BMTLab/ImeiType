@@ -9,4 +9,13 @@
         <TargetFrameworks>net9.0;net8.0;net7.0;net6.0</TargetFrameworks>
     </PropertyGroup>
 
+    <ItemGroup Label="ThirdPartyReferences">
+        <PackageReference Include="System.Text.Json" />
+    </ItemGroup>
+
+    <ItemGroup Label="GlobalUsingsConfig">
+        <Using Include="System.Text.Json"/>
+        <Using Include="System.Text.Json.Serialization"/>
+    </ItemGroup>
+
 </Project>
