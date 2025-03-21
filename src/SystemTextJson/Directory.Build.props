@@ -10,7 +10,7 @@
     </PropertyGroup>
 
     <ItemGroup Label="ThirdPartyReferences">
-        <PackageReference Include="System.Text.Json" />
+        <PackageReference Include="System.Text.Json"/>
     </ItemGroup>
 
     <ItemGroup Label="GlobalUsingsConfig">

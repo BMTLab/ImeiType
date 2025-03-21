@@ -14,48 +14,25 @@ public class JsonImeiConverterSerializationTests
         }.WithImeiConverter(imeiWriteOptions);
 
 
-    /// <summary>
-    ///     Method needed only for a correct and convenient way to compose a expected JSON value.
-    /// </summary>
-    [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance")]
-    private static object WriteImeiAs(Type type, in long val)
-    {
-        if (type == typeof(string))
-        {
-            return "\"" + val + "\"";
-        }
-
-        if (type == typeof(long))
-        {
-            return val;
-        }
-
-        throw new NotSupportedException
-        (
-            $"It allowed to embed the IMEI value into JSON, only as {typeof(string)} or as {typeof(long)}, but not as {type}."
-        );
-    }
-
-
     [Theory]
-    [InlineData(Default, null, typeof(long))]
-    [InlineData(Default, WriteAsString, typeof(string))]
-    [InlineData(ForceWriteAsNumber, null, typeof(long))]
-    [InlineData(ForceWriteAsNumber, WriteAsString, typeof(long))]
-    [InlineData(ForceWriteAsString, null, typeof(string))]
-    [InlineData(ForceWriteAsString, WriteAsString, typeof(string))]
+    [InlineData(Default, null, JsonTokenType.Number)]
+    [InlineData(Default, WriteAsString, JsonTokenType.String)]
+    [InlineData(ForceWriteAsNumber, null, JsonTokenType.Number)]
+    [InlineData(ForceWriteAsNumber, WriteAsString, JsonTokenType.Number)]
+    [InlineData(ForceWriteAsString, null, JsonTokenType.String)]
+    [InlineData(ForceWriteAsString, WriteAsString, JsonTokenType.String)]
     public void Serialize_ShouldHandleImeiField_WithDifferentWritingOptions
     (
         JsonImeiWriteOptions imeiWriteOptions,
         JsonNumberHandling? globalWriteOptions,
-        Type expectedJsonType
+        JsonTokenType expectedJsonType
     )
     {
         // Arrange
         var expectedJson =
             $$"""
                   {
-                    "val": {{WriteImeiAs(expectedJsonType, val: 490154203237518)}}
+                    "val": {{WriteJsonTokenAs(expectedJsonType, val: 490154203237518)}}
                   }
                   """.Minify();
 
@@ -73,17 +50,76 @@ public class JsonImeiConverterSerializationTests
 
 
     [Theory]
-    [InlineData(Default, null, typeof(long))]
-    [InlineData(Default, WriteAsString, typeof(string))]
-    [InlineData(ForceWriteAsNumber, null, typeof(long))]
-    [InlineData(ForceWriteAsNumber, WriteAsString, typeof(long))]
-    [InlineData(ForceWriteAsString, null, typeof(string))]
-    [InlineData(ForceWriteAsString, WriteAsString, typeof(string))]
+    [InlineData(Default, null, JsonTokenType.Number)]
+    [InlineData(Default, WriteAsString, JsonTokenType.String)]
+    [InlineData(ForceWriteAsNumber, null, JsonTokenType.Number)]
+    [InlineData(ForceWriteAsNumber, WriteAsString, JsonTokenType.Number)]
+    [InlineData(ForceWriteAsString, null, JsonTokenType.String)]
+    [InlineData(ForceWriteAsString, WriteAsString, JsonTokenType.String)]
+    public void Serialize_ShouldHandleNullableImeiField_WithDifferentWritingOptions
+    (
+        JsonImeiWriteOptions imeiWriteOptions,
+        JsonNumberHandling? globalWriteOptions,
+        JsonTokenType expectedJsonType
+    )
+    {
+        // Arrange
+        var expectedJson =
+            $$"""
+                  {
+                    "val": {{WriteJsonTokenAs(expectedJsonType, val: 490154203237518)}}
+                  }
+                  """.Minify();
+
+        var toSerialize = new NullableImeiContainer
+        {
+            Imei = (Imei) 490154203237518
+        };
+
+        // Act
+        var json = Serialize(toSerialize, GetOptions(imeiWriteOptions, globalWriteOptions));
+
+        // Assert
+        json.Should().Be(expectedJson);
+    }
+
+
+    [Fact]
+    public void Serialize_ShouldHandleNullableImeiField_WhenItIsNull()
+    {
+        // Arrange
+        var expectedJson =
+            """
+                {
+                  "val": null
+                }
+                """.Minify();
+
+        var toSerialize = new NullableImeiContainer
+        {
+            Imei = null
+        };
+
+        // Act
+        var json = Serialize(toSerialize, GetOptions());
+
+        // Assert
+        json.Should().Be(expectedJson);
+    }
+
+
+    [Theory]
+    [InlineData(Default, null, JsonTokenType.Number)]
+    [InlineData(Default, WriteAsString, JsonTokenType.String)]
+    [InlineData(ForceWriteAsNumber, null, JsonTokenType.Number)]
+    [InlineData(ForceWriteAsNumber, WriteAsString, JsonTokenType.Number)]
+    [InlineData(ForceWriteAsString, null, JsonTokenType.String)]
+    [InlineData(ForceWriteAsString, WriteAsString, JsonTokenType.String)]
     public void Serialize_ShouldHandleImeiList_WithDifferentWritingOptions
     (
         JsonImeiWriteOptions imeiWriteOptions,
         JsonNumberHandling? globalWriteOptions,
-        Type expectedJsonType
+        JsonTokenType expectedJsonType
     )
     {
         // Arrange
@@ -91,8 +127,9 @@ public class JsonImeiConverterSerializationTests
             $$"""
                   {
                     "val": [
-                      {{WriteImeiAs(expectedJsonType, val: 490154203237518)}},
-                      {{WriteImeiAs(expectedJsonType, val: 356303489916807)}}
+                      {{WriteJsonTokenAs(expectedJsonType, val: 490154203237518)}},
+                      {{WriteJsonTokenAs(expectedJsonType, val: 356303489916807)}},
+                      null
                     ]
                   }
                   """.Minify();
@@ -102,7 +139,8 @@ public class JsonImeiConverterSerializationTests
             ImeiList =
             [
                 (Imei) 490154203237518,
-                (Imei) 356303489916807
+                (Imei) 356303489916807,
+                null
             ]
         };
 
@@ -132,9 +170,9 @@ public class JsonImeiConverterSerializationTests
             $$"""
                   {
                     "val": {
-                      {{WriteImeiAs(typeof(string), val: 490154203237518)}}: "A",
-                      {{WriteImeiAs(typeof(string), val: 356303489916807)}}: "B",
-                      {{WriteImeiAs(typeof(string), val: 356656423384345)}}: null
+                      {{WriteJsonTokenAs(JsonTokenType.String, val: 490154203237518)}}: "A",
+                      {{WriteJsonTokenAs(JsonTokenType.String, val: 356303489916807)}}: "B",
+                      {{WriteJsonTokenAs(JsonTokenType.String, val: 356656423384345)}}: null
                     }
                   }
                   """.Minify();
@@ -158,17 +196,17 @@ public class JsonImeiConverterSerializationTests
 
 
     [Theory]
-    [InlineData(Default, null, typeof(long))]
-    [InlineData(Default, WriteAsString, typeof(string))]
-    [InlineData(ForceWriteAsNumber, null, typeof(long))]
-    [InlineData(ForceWriteAsNumber, WriteAsString, typeof(long))]
-    [InlineData(ForceWriteAsString, null, typeof(string))]
-    [InlineData(ForceWriteAsString, WriteAsString, typeof(string))]
+    [InlineData(Default, null, JsonTokenType.Number)]
+    [InlineData(Default, WriteAsString, JsonTokenType.String)]
+    [InlineData(ForceWriteAsNumber, null, JsonTokenType.Number)]
+    [InlineData(ForceWriteAsNumber, WriteAsString, JsonTokenType.Number)]
+    [InlineData(ForceWriteAsString, null, JsonTokenType.String)]
+    [InlineData(ForceWriteAsString, WriteAsString, JsonTokenType.String)]
     public void Serialize_ShouldHandleImeiDictionary_WhenValuesAreImei_WithDifferentWritingOptions
     (
         JsonImeiWriteOptions imeiWriteOptions,
         JsonNumberHandling? globalWriteOptions,
-        Type expectedJsonType
+        JsonTokenType expectedJsonType
     )
     {
         // Arrange
@@ -176,8 +214,8 @@ public class JsonImeiConverterSerializationTests
             $$"""
                   {
                     "val": {
-                      "A": {{WriteImeiAs(expectedJsonType, val: 490154203237518)}},
-                      "B": {{WriteImeiAs(expectedJsonType, val: 356303489916807)}},
+                      "A": {{WriteJsonTokenAs(expectedJsonType, val: 490154203237518)}},
+                      "B": {{WriteJsonTokenAs(expectedJsonType, val: 356303489916807)}},
                       "C": null
                     }
                   }

@@ -6,8 +6,62 @@ public class JsonImeiConverterDeserializationTests
         new JsonSerializerOptions().WithImeiConverter();
 
 
+    [Theory]
+    [InlineData(JsonTokenType.String)]
+    [InlineData(JsonTokenType.Number)]
+    public void Deserialize_ShouldHandleImeiField_WhenItIsValid
+    (
+        JsonTokenType jsonType
+    )
+    {
+        // Arrange
+        var toDeserialize =
+            $$"""
+              {
+                "val": {{WriteJsonTokenAs(jsonType, val: 490154203237518)}}
+              }
+              """;
+
+        // Act
+        var actualObject = Deserialize<ImeiContainer>(toDeserialize, Options);
+
+        // Assert
+        actualObject
+           .Should().BeOfType<ImeiContainer>()
+           .Which.Imei.Should().BeOfType<Imei>()
+           .And.Be((Imei) 490154203237518);
+    }
+
+
+    [Theory]
+    [InlineData(JsonTokenType.String)]
+    [InlineData(JsonTokenType.Number)]
+    public void Deserialize_ShouldHandleNullableImeiField_WhenItIsValid
+    (
+        JsonTokenType jsonType
+    )
+    {
+        // Arrange
+        var toDeserialize =
+            $$"""
+              {
+                "val": {{WriteJsonTokenAs(jsonType, val: 490154203237518)}}
+              }
+              """;
+
+        // Act
+        var actualObject = Deserialize<NullableImeiContainer>(toDeserialize, Options);
+
+        // Assert
+        actualObject
+           .Should().BeOfType<NullableImeiContainer>()
+           .Which.Imei.Should().BeOfType<Imei>()
+           .And.Be((Imei) 490154203237518);
+    }
+
+
     [Fact]
-    public void Deserialize_ShouldHandleImeiField_WhenItIsNull()
+    public void Deserialize_ShouldHandleNullableImeiField_WhenItIsNull()
     {
         // Arrange
         const string toDeserialize =
@@ -27,60 +81,23 @@ public class JsonImeiConverterDeserializationTests
     }
 
 
-    [Fact]
-    public void Deserialize_ShouldHandleValidImeiField_WhenAsText()
+    [Theory]
+    [InlineData("abc", JsonTokenType.String)]
+    [InlineData(111111111111111, JsonTokenType.Number)]
+    [InlineData(null, JsonTokenType.Null)]
+    public void Deserialize_ShouldHandleImeiField_WhenItIsInvalid
+    (
+        object? invalidValue,
+        JsonTokenType jsonType
+    )
     {
         // Arrange
-        const string toDeserialize =
-            """
-            {
-              "val": "490154203237518"
-            }
-            """;
-
-        // Act
-        var actualObject = Deserialize<ImeiContainer>(toDeserialize, Options);
-
-        // Assert
-        actualObject
-           .Should().BeOfType<ImeiContainer>()
-           .Which.Imei.Should().BeOfType<Imei>()
-           .And.Be((Imei) 490154203237518);
-    }
-
-
-    [Fact]
-    public void Deserialize_ShouldHandleValidImeiField_WhenAsNumber()
-    {
-        // Arrange
-        const string toDeserialize =
-            """
-            {
-              "val": 490154203237518
-            }
-            """;
-
-        // Act
-        var actualObject = Deserialize<ImeiContainer>(toDeserialize, Options);
-
-        // Assert
-        actualObject
-           .Should().BeOfType<ImeiContainer>()
-           .Which.Imei.Should().BeOfType<Imei>()
-           .And.Be((Imei) 490154203237518);
-    }
-
-
-    [Fact]
-    public void Deserialize_ShouldHandleInvalidImeiField_WhenAsText()
-    {
-        // Arrange
-        const string toDeserialze =
-            """
-            {
-              "val": "abc"
-            }
-            """;
+        var toDeserialze =
+            $$"""
+              {
+                "val": {{WriteJsonTokenAs(jsonType, invalidValue)}}
+              }
+              """;
 
         // Act
         Action act = () => _ = Deserialize<ImeiContainer>(toDeserialze, Options);
@@ -93,50 +110,6 @@ public class JsonImeiConverterDeserializationTests
 
 
     [Fact]
-    public void Deserialize_ShouldHandleNullableValidImeiField_WhenAsText()
-    {
-        // Arrange
-        const string toDeserialize =
-            """
-            {
-              "val": "490154203237518"
-            }
-            """;
-
-        // Act
-        var actualObject = Deserialize<NullableImeiContainer>(toDeserialize, Options);
-
-        // Assert
-        actualObject
-           .Should().BeOfType<NullableImeiContainer>()
-           .Which.Imei.Should().BeOfType<Imei>()
-           .And.Be((Imei) 490154203237518);
-    }
-
-
-    [Fact]
-    public void Deserialize_ShouldHandleNullableValidImeiField_WhenAsNumber()
-    {
-        // Arrange
-        const string toDeserialize =
-            """
-            {
-              "val": 490154203237518
-            }
-            """;
-
-        // Act
-        var actualObject = Deserialize<NullableImeiContainer>(toDeserialize, Options);
-
-        // Assert
-        actualObject
-           .Should().BeOfType<NullableImeiContainer>()
-           .Which.Imei.Should().BeOfType<Imei>()
-           .And.Be((Imei) 490154203237518);
-    }
-
-
-    [Fact]
     public void Deserialize_ShouldHandleImeiList_WhenItemsAreImei()
     {
         // Arrange
@@ -145,7 +118,8 @@ public class JsonImeiConverterDeserializationTests
             {
               "val": [
                 "490154203237518",
-                356303489916807
+                356303489916807,
+                null
               ]
             }
             """;
@@ -158,7 +132,8 @@ public class JsonImeiConverterDeserializationTests
            .Should().BeOfType<ImeiListContainer>()
            .Which.ImeiList.Should().SatisfyRespectively(
                 itemA => itemA.Should().Be((Imei) 490154203237518),
-                itemB => itemB.Should().Be((Imei) 356303489916807)
+                itemB => itemB.Should().Be((Imei) 356303489916807),
+                itemC => itemC.Should().BeNull()
             );
     }
 
