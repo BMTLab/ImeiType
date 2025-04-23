@@ -14,7 +14,7 @@ public class JsonImeiConverterAttributeTests
         var toDeserialize =
             $$"""
               {
-                "val": {{WriteJsonTokenAs(jsonType, val: 490154203237518)}}
+                "val": {{WriteAs(jsonType, val: 490154203237518)}}
               }
               """;
 
@@ -36,7 +36,7 @@ public class JsonImeiConverterAttributeTests
         var expectedJson =
             $$"""
                   {
-                    "val": {{WriteJsonTokenAs(JsonTokenType.Number, val: 490154203237518)}}
+                    "val": {{WriteAs(JsonTokenType.Number, val: 490154203237518)}}
                   }
                   """.Minify();
 

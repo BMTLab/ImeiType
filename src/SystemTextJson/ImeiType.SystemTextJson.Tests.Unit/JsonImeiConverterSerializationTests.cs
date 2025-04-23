@@ -14,6 +14,12 @@ public class JsonImeiConverterSerializationTests
         }.WithImeiConverter(imeiWriteOptions);
 
 
+#if NET7_0_OR_GREATER
+    [StringSyntax(StringSyntaxAttribute.Json)]
+#endif
+    private string? _expectedJson;
+
+
     [Theory]
     [InlineData(Default, null, JsonTokenType.Number)]
     [InlineData(Default, WriteAsString, JsonTokenType.String)]
@@ -29,10 +35,10 @@ public class JsonImeiConverterSerializationTests
     )
     {
         // Arrange
-        var expectedJson =
+        _expectedJson =
             $$"""
                   {
-                    "val": {{WriteJsonTokenAs(expectedJsonType, val: 490154203237518)}}
+                    "val": {{WriteAs(expectedJsonType, val: 490154203237518)}}
                   }
                   """.Minify();
 
@@ -45,7 +51,7 @@ public class JsonImeiConverterSerializationTests
         var json = Serialize(toSerialize, GetOptions(imeiWriteOptions, globalWriteOptions));
 
         // Assert
-        json.Should().Be(expectedJson);
+        json.Should().Be(_expectedJson);
     }
 
 
@@ -64,10 +70,10 @@ public class JsonImeiConverterSerializationTests
     )
     {
         // Arrange
-        var expectedJson =
+        _expectedJson =
             $$"""
                   {
-                    "val": {{WriteJsonTokenAs(expectedJsonType, val: 490154203237518)}}
+                    "val": {{WriteAs(expectedJsonType, val: 490154203237518)}}
                   }
                   """.Minify();
 
@@ -80,7 +86,7 @@ public class JsonImeiConverterSerializationTests
         var json = Serialize(toSerialize, GetOptions(imeiWriteOptions, globalWriteOptions));
 
         // Assert
-        json.Should().Be(expectedJson);
+        json.Should().Be(_expectedJson);
     }
 
 
@@ -88,7 +94,7 @@ public class JsonImeiConverterSerializationTests
     public void Serialize_ShouldHandleNullableImeiField_WhenItIsNull()
     {
         // Arrange
-        var expectedJson =
+        _expectedJson =
             """
                 {
                   "val": null
@@ -104,7 +110,7 @@ public class JsonImeiConverterSerializationTests
         var json = Serialize(toSerialize, GetOptions());
 
         // Assert
-        json.Should().Be(expectedJson);
+        json.Should().Be(_expectedJson);
     }
 
 
@@ -123,12 +129,12 @@ public class JsonImeiConverterSerializationTests
     )
     {
         // Arrange
-        var expectedJson =
+        _expectedJson =
             $$"""
                   {
                     "val": [
-                      {{WriteJsonTokenAs(expectedJsonType, val: 490154203237518)}},
-                      {{WriteJsonTokenAs(expectedJsonType, val: 356303489916807)}},
+                      {{WriteAs(expectedJsonType, val: 490154203237518)}},
+                      {{WriteAs(expectedJsonType, val: 356303489916807)}},
                       null
                     ]
                   }
@@ -148,7 +154,7 @@ public class JsonImeiConverterSerializationTests
         var json = Serialize(toSerialize, GetOptions(imeiWriteOptions, globalWriteOptions));
 
         // Assert
-        json.Should().Be(expectedJson);
+        json.Should().Be(_expectedJson);
     }
 
 
@@ -166,13 +172,13 @@ public class JsonImeiConverterSerializationTests
     )
     {
         // Arrange
-        var expectedJson =
+        _expectedJson =
             $$"""
                   {
                     "val": {
-                      {{WriteJsonTokenAs(JsonTokenType.String, val: 490154203237518)}}: "A",
-                      {{WriteJsonTokenAs(JsonTokenType.String, val: 356303489916807)}}: "B",
-                      {{WriteJsonTokenAs(JsonTokenType.String, val: 356656423384345)}}: null
+                      {{WriteAs(JsonTokenType.String, val: 490154203237518)}}: "A",
+                      {{WriteAs(JsonTokenType.String, val: 356303489916807)}}: "B",
+                      {{WriteAs(JsonTokenType.String, val: 356656423384345)}}: null
                     }
                   }
                   """.Minify();
@@ -191,7 +197,7 @@ public class JsonImeiConverterSerializationTests
         var json = Serialize(toSerialize, GetOptions(imeiWriteOptions, globalWriteOptions));
 
         // Assert
-        json.Should().Be(expectedJson);
+        json.Should().Be(_expectedJson);
     }
 
 
@@ -210,12 +216,12 @@ public class JsonImeiConverterSerializationTests
     )
     {
         // Arrange
-        var expectedJson =
+        _expectedJson =
             $$"""
                   {
                     "val": {
-                      "A": {{WriteJsonTokenAs(expectedJsonType, val: 490154203237518)}},
-                      "B": {{WriteJsonTokenAs(expectedJsonType, val: 356303489916807)}},
+                      "A": {{WriteAs(expectedJsonType, val: 490154203237518)}},
+                      "B": {{WriteAs(expectedJsonType, val: 356303489916807)}},
                       "C": null
                     }
                   }
@@ -235,6 +241,6 @@ public class JsonImeiConverterSerializationTests
         var json = Serialize(toSerialize, GetOptions(imeiWriteOptions, globalWriteOptions));
 
         // Assert
-        json.Should().Be(expectedJson);
+        json.Should().Be(_expectedJson);
     }
 }

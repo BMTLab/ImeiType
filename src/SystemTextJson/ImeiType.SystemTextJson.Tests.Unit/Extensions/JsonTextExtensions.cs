@@ -21,7 +21,7 @@ public static partial class JsonTextExtensions
     /// </summary>
     [Pure]
     [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance")]
-    public static object WriteJsonTokenAs(JsonTokenType jsonType, object? val)
+    public static object WriteAs(JsonTokenType jsonType, object? val)
     {
         if (val is null || jsonType == JsonTokenType.Null)
         {
@@ -45,7 +45,7 @@ public static partial class JsonTextExtensions
 #if NET7_0_OR_GREATER
 partial class JsonTextExtensions
 {
-    public static partial string Minify(this string json) =>
+    public static partial string Minify([StringSyntax(StringSyntaxAttribute.Json)] this string json) =>
         WhiteSpacesPattern().Replace(json, string.Empty);
 
 

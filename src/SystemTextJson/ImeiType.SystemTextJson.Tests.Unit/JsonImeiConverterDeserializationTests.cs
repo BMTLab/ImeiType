@@ -5,6 +5,11 @@ public class JsonImeiConverterDeserializationTests
     private static readonly JsonSerializerOptions Options =
         new JsonSerializerOptions().WithImeiConverter();
 
+#if NET7_0_OR_GREATER
+    [StringSyntax(StringSyntaxAttribute.Json)]
+#endif
+    private string? _toDeserialize;
+
 
     [Theory]
     [InlineData(JsonTokenType.String)]
@@ -15,15 +20,15 @@ public class JsonImeiConverterDeserializationTests
     )
     {
         // Arrange
-        var toDeserialize =
+        _toDeserialize =
             $$"""
               {
-                "val": {{WriteJsonTokenAs(jsonType, val: 490154203237518)}}
+                "val": {{WriteAs(jsonType, val: 490154203237518)}}
               }
               """;
 
         // Act
-        var actualObject = Deserialize<ImeiContainer>(toDeserialize, Options);
+        var actualObject = Deserialize<ImeiContainer>(_toDeserialize, Options);
 
         // Assert
         actualObject
@@ -42,15 +47,15 @@ public class JsonImeiConverterDeserializationTests
     )
     {
         // Arrange
-        var toDeserialize =
+        _toDeserialize =
             $$"""
               {
-                "val": {{WriteJsonTokenAs(jsonType, val: 490154203237518)}}
+                "val": {{WriteAs(jsonType, val: 490154203237518)}}
               }
               """;
 
         // Act
-        var actualObject = Deserialize<NullableImeiContainer>(toDeserialize, Options);
+        var actualObject = Deserialize<NullableImeiContainer>(_toDeserialize, Options);
 
         // Assert
         actualObject
@@ -64,7 +69,7 @@ public class JsonImeiConverterDeserializationTests
     public void Deserialize_ShouldHandleNullableImeiField_WhenItIsNull()
     {
         // Arrange
-        const string toDeserialize =
+        _toDeserialize =
             """
             {
               "val": null
@@ -72,7 +77,7 @@ public class JsonImeiConverterDeserializationTests
             """;
 
         // Act
-        var actualObject = Deserialize<NullableImeiContainer>(toDeserialize, Options);
+        var actualObject = Deserialize<NullableImeiContainer>(_toDeserialize, Options);
 
         // Assert
         actualObject
@@ -92,15 +97,15 @@ public class JsonImeiConverterDeserializationTests
     )
     {
         // Arrange
-        var toDeserialze =
+        _toDeserialize =
             $$"""
               {
-                "val": {{WriteJsonTokenAs(jsonType, invalidValue)}}
+                "val": {{WriteAs(jsonType, invalidValue)}}
               }
               """;
 
         // Act
-        Action act = () => _ = Deserialize<ImeiContainer>(toDeserialze, Options);
+        Action act = () => _ = Deserialize<ImeiContainer>(_toDeserialize, Options);
 
         // Assert
         act
@@ -113,7 +118,7 @@ public class JsonImeiConverterDeserializationTests
     public void Deserialize_ShouldHandleImeiList_WhenItemsAreImei()
     {
         // Arrange
-        const string json =
+        _toDeserialize =
             """
             {
               "val": [
@@ -125,7 +130,7 @@ public class JsonImeiConverterDeserializationTests
             """;
 
         // Act
-        var actualObject = Deserialize<ImeiListContainer>(json, Options);
+        var actualObject = Deserialize<ImeiListContainer>(_toDeserialize, Options);
 
         // Assert
         actualObject
@@ -142,7 +147,7 @@ public class JsonImeiConverterDeserializationTests
     public void Deserialize_ShouldHandleImeiDictionary_WhenKeysAreImei()
     {
         // Arrange
-        const string toDeserialize =
+        _toDeserialize =
             """
             {
               "val": {
@@ -154,7 +159,7 @@ public class JsonImeiConverterDeserializationTests
             """;
 
         // Act
-        var actualObject = Deserialize<ImeiDictionaryContainer<Imei, string?>>(toDeserialize, Options);
+        var actualObject = Deserialize<ImeiDictionaryContainer<Imei, string?>>(_toDeserialize, Options);
 
         // Assert
         actualObject
@@ -183,7 +188,7 @@ public class JsonImeiConverterDeserializationTests
     public void Deserialize_ShouldHandleImeiDictionary_WhenValuesAreImei()
     {
         // Arrange
-        const string toDeserialze =
+        _toDeserialize =
             """
             {
               "val": {
@@ -195,7 +200,7 @@ public class JsonImeiConverterDeserializationTests
             """;
 
         // Act
-        var actualObject = Deserialize<ImeiDictionaryContainer<string, Imei?>>(toDeserialze, Options);
+        var actualObject = Deserialize<ImeiDictionaryContainer<string, Imei?>>(_toDeserialize, Options);
 
         // Assert
         actualObject
