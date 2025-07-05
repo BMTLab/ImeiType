@@ -1,0 +1,21 @@
+<!-- ./src/ImeiType.SystemTextJson/Directory.Build.props -->
+<Project>
+
+    <!-- Load properties for all projects inside ImeiType.SystemTextJson from the defined props files above -->
+    <Import Project="$([MSBuild]::GetPathOfFileAbove(Directory.Build.props, $(MSBuildThisFileDirectory)..))"/>
+
+    <PropertyGroup Label="FrameworkConfig">
+        <!-- The ImeiType.SystemTextJson extension is not targeted at netstandard -->
+        <TargetFrameworks>net9.0;net8.0;net7.0;net6.0</TargetFrameworks>
+    </PropertyGroup>
+
+    <ItemGroup Label="ThirdPartyReferences">
+        <PackageReference Include="System.Text.Json"/>
+    </ItemGroup>
+
+    <ItemGroup Label="GlobalUsingsConfig">
+        <Using Include="System.Text.Json"/>
+        <Using Include="System.Text.Json.Serialization"/>
+    </ItemGroup>
+
+</Project>

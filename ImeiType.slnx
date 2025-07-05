@@ -23,4 +23,9 @@
     <Project Path="src\Core\ImeiType.Tests.Unit\ImeiType.Tests.Unit.csproj" Type="Classic C#" />
     <Project Path="src\Core\ImeiType\ImeiType.csproj" Type="Classic C#" />
   </Folder>
+  <Folder Name="/src/SystemTextJson/">
+    <Project Path="src\SystemTextJson\ImeiType.SystemTextJson.Tests.Unit\ImeiType.SystemTextJson.Tests.Unit.csproj" Type="Classic C#" />
+    <Project Path="src\SystemTextJson\ImeiType.SystemTextJson\ImeiType.SystemTextJson.csproj" Type="Classic C#" />
+    <File Path="src\SystemTextJson\Directory.Build.props" />
+  </Folder>
 </Solution>
