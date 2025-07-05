@@ -33,8 +33,7 @@ jobs:
       - name: ⚙ Checkout Check Tag Action
         uses: actions/checkout@v4.2.2
         with:
-          sparse-checkout: .github/actions/check-tag-action
-          sparse-checkout-cone-mode: false
+          fetch-depth: 0
           fetch-tags: true
 
       - name: 🔝 Check Tag Version
