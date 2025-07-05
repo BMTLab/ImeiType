@@ -3,19 +3,19 @@ using BenchmarkDotNet.Jobs;
 
 namespace BMTLab.ImeiType.Tests.Benchmarks;
 
-[SimpleJob(RuntimeMoniker.Net60, baseline: true)]
-[SimpleJob(RuntimeMoniker.Net80)]
+[SimpleJob(RuntimeMoniker.Net80, baseline: true)]
 [SimpleJob(RuntimeMoniker.Net90)]
 [MemoryDiagnoser]
 [SuppressMessage("ReSharper", "ClassNeverInstantiated.Global")]
+[SuppressMessage("Performance", "CA1822:Mark members as static")]
 public class NewRandomImeiBenchmark
 {
     [Benchmark]
-    public static Imei WithSeed() =>
+    public Imei WithSeed() =>
         Imei.NewRandomImei(42);
 
 
     [Benchmark]
-    public static Imei WithCryptoModule() =>
+    public Imei WithCryptoModule() =>
         Imei.NewRandomImei();
 }
