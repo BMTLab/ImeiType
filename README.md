@@ -26,7 +26,7 @@ dotnet add package BMTLab.ImeiType
 Or edit your `.csproj`:
 
 ```xml
-<PackageReference Include="BMTLab.ImeiType" Version="1.0.0" />
+<PackageReference Include="BMTLab.ImeiType" Version="1.1.0" />
 ```
 
 ## Features
@@ -208,10 +208,83 @@ WriteLine($"Random IMEI (with seed): {newImeiA}");
 WriteLine($"Random IMEI (secure, but slower a bit): {newImeiB}");
 ```
 
+## BMTLab.ImeiType.SystemTextJson
+
+**BMTLab.ImeiType.SystemTextJson** is an optional add-on package that provides JSON serialization and deserialization
+of `Imei` values using the built-in **`System.Text.Json`** APIs.
+
+It includes a specialized converter: **`JsonImeiConverter`**,
+which can read IMEI numbers from JSON as either numeric or string values, and write them back in a controlled manner.
+
+The converter also supports IMEIs as list items, keys or dictionary values.
+
+> **Supported Platforms**  
+> `.NET 9.0`, `8.0`, `7.0`, `6.0`
+
+### Installation
+
+```bash
+dotnet add package BMTLab.ImeiType.SystemTextJson
+```
+
+Or edit your `.csproj`:
+
+```xml
+<PackageReference Include="BMTLab.ImeiType.SystemTextJson" Version="1.1.0" />
+```
+
+### Usage
+
+```csharp
+using System.Text.Json;
+using BMTLab.ImeiType.SystemTextJson.Extensions;
+
+var options = new JsonSerializerOptions().WithImeiConverter();               // Configure with IMEI converter
+
+var obj = new ImeiContainer { Val = (Imei) 356303489916807 };
+var json = JsonSerializer.Serialize(obj, options);                           //> { "val": 356303489916807 }
+var deserialized = JsonSerializer.Deserialize<ImeiContainer>(json, options); //> ImeiContainer with Imei property set
+```
+
+### Extension Methods
+
+For convenience, you can use one of the suggested extension methods:
+- `.WithImeiConverter(JsonImeiWriteOptions writeOptions = JsonImeiWriteOptions.Default)` (on `JsonSerializerOptions`)
+  Attaches the IMEI converter with a chosen writing strategy.
+- `.AddImeiConverter(JsonImeiWriteOptions writeOptions = JsonImeiWriteOptions.Default)` (on `IList<JsonConverter>`)
+  Allows adding the same converter in a more granular manner if you manage your own converter list.
+
+### JsonImeiWriteOptions
+
+The enum **`JsonImeiWriteOptions`** specifies how to write the IMEI
+(number, string, or auto-select based on `JsonSerializerOptions.NumberHandling`).
+
+```csharp
+[DefaultValue(Default)]
+public enum JsonImeiWriteOptions
+{
+    /// <summary>
+    ///     Applies the default logic based on <see cref="JsonSerializerOptions.NumberHandling" />
+    ///     to determine how IMEIs is written.
+    /// </summary>
+    Default = 0,
+
+    /// <summary>
+    ///     Always writes IMEIs as a numeric (for example, <c>{"val": 356303489916807}</c>).
+    /// </summary>
+    ForceWriteAsNumber,
+
+    /// <summary>
+    ///     Always writes IMEIs as a string (for example, <c>{"val": "356303489916807"}</c>).
+    /// </summary>
+    ForceWriteAsString
+}
+```
+
 ## Future Ideas
 
 I plan to add a couple of new optional extension projects for `ImeiType`,
-such as integration with `System.Text.Json` and `EF Core`.
+such as integration with `EF Core` / `Dapper`.
 
 
 ****************************

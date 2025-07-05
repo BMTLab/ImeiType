@@ -53,6 +53,8 @@ main() {
 
   # Clean files with specific patterns
   clean_files 'VERSION.g.txt'
+  clean_files 'packages.lock.json'
+  clean_files '.AssemblyAttributes'
 
   printf 'Cleaning completed!\n'
 }

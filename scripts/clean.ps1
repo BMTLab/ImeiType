@@ -58,8 +58,13 @@ function Main
         Clean-Directories -Pattern $pattern
     }
 
+    $filesPatterns = @('VERSION.g.txt', 'packages.lock.json',  '.AssemblyAttributes')
+
     # Clean files
-    Clean-Files -Pattern "VERSION.g.txt"
+    foreach ($pattern in $filesPatterns)
+    {
+        Clean-Files -Pattern $pattern
+    }
 
     Write-Host "Cleaning completed!"
 }

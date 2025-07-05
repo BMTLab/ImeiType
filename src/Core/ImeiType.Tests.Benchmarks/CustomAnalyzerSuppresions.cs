@@ -1,0 +1,1 @@
+[assembly: SuppressMessage("ReSharper", "ClassNeverInstantiated.Global")]

@@ -1,0 +1,9 @@
+﻿<!-- ./src/Core/ImeiType/ImeiType.csproj -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup Label="FrameworkConfig">
+        <NoWarn>$(NoWarn);CA5394</NoWarn> <!-- Do not use insecure randomness -->
+        <NoWarn>$(NoWarn);S4136</NoWarn> <!-- Method overloads should be grouped together -->
+    </PropertyGroup>
+
+</Project>

@@ -38,117 +38,97 @@ strategies:
   - VersionInBranchName
 
 branches:
+  main:
+    # Stable releases. No pre-release label.
+    # Example version: 1.2.3
+    mode: ContinuousDeployment
+    label: ''
+    increment: Patch
+    prevent-increment:
+      of-merged-branch: true
+    track-merge-target: false
+    regex: ^main$
+    is-main-branch: true
+    pre-release-weight: 55000
+
   develop:
+    # Development branch.
+    # Example version: 1.3.0-alpha.1
     mode: ContinuousDelivery
     label: alpha
     increment: Minor
     prevent-increment:
       when-current-commit-tagged: false
     track-merge-target: true
-    track-merge-message: true
-    regex: ^dev$
+    regex: ^dev(elop)?$
     source-branches:
       - main
-    is-source-branch-for: [ ]
     tracks-release-branches: true
-    is-release-branch: false
-    is-main-branch: false
     pre-release-weight: 0
 
-  main:
-    # Stable branch: uses patch increment by default, no label
-    label: ''
-    increment: Patch
-    prevent-increment:
-      of-merged-branch: true
-    track-merge-target: false
-    track-merge-message: true
-    regex: ^main$
-    source-branches: [ ]
-    is-source-branch-for: [ ]
-    tracks-release-branches: false
-    is-release-branch: false
-    is-main-branch: true
-    pre-release-weight: 55000
-
   release:
-    # Release branches: pre-release label "rc", Minor increment
+    # Release preparation branches. Marked as 'beta'.
+    # Example version: 1.3.0-beta.1
     mode: ManualDeployment
-    label: rc
+    label: beta
     increment: Minor
     prevent-increment:
       of-merged-branch: true
       when-current-commit-tagged: false
-    track-merge-target: false
     regex: ^releases?[/-](?<BranchName>.+)
     source-branches:
-      - main
-    is-source-branch-for: [ ]
-    tracks-release-branches: false
-    is-main-branch: false
+      - develop
     is-release-branch: true
     pre-release-weight: 30000
 
-  feature:
-    # Feature branches: label = branch name, inherits version increment from parent
+  hotfix:
+    # Hotfix branches for urgent production fixes. Marked as 'rc' (Release Candidate).
+    # Example version: 1.2.4-rc.1
     mode: ManualDeployment
-    label: '{BranchName}'
-    increment: Inherit
+    label: rc
+    increment: Patch # Explicitly set for clarity
     prevent-increment:
       when-current-commit-tagged: false
-    track-merge-message: true
+    regex: ^hotfix(es)?[/-](?<BranchName>.+)
+    source-branches:
+      - main
+    is-release-branch: true
+    pre-release-weight: 40000
+
+  feature:
+    # Feature branches. The Label includes a short prefix 'feat.'.
+    # Example version: 1.3.0-feat.new-login.1
+    mode: ManualDeployment
+    label: feat.{BranchName}
+    increment: Inherit
     regex: ^features?[/-](?<BranchName>.+)
     source-branches:
       - develop
       - main
       - release
       - hotfix
-    is-source-branch-for: [ ]
-    is-main-branch: false
     pre-release-weight: 30000
 
   pull-request:
-    # PR branches: label "pr", inherits increment, includes PR number if matched
+    # Pull requests. The Label includes the PR number.
+    # Example version: 1.3.0-pr.123.1
     mode: ContinuousDelivery
-    label: pr
+    label: pr.{number}
     increment: Inherit
-    prevent-increment:
-      of-merged-branch: true
-      when-current-commit-tagged: false
-    label-number-pattern: '[/-](?<number>\d+)'
-    track-merge-message: true
-    regex: ^(pull|pull\-requests|pr)[/-]
+    regex: ^(pull|pull-requests|pr)[/-](?<number>\d+)
     source-branches:
       - develop
       - main
       - release
       - feature
       - hotfix
-    is-source-branch-for: [ ]
-    pre-release-weight: 30000
-
-  hotfix:
-    # Hotfix branches: label "beta", inherits increment from parent
-    mode: ManualDeployment
-    label: beta
-    increment: Inherit
-    prevent-increment:
-      when-current-commit-tagged: false
-    regex: ^hotfix(es)?[/-](?<BranchName>.+)
-    source-branches:
-      - main
-    is-source-branch-for: [ ]
-    is-release-branch: true
-    is-main-branch: false
     pre-release-weight: 30000
 
   unknown:
-    # Fallback for branches not matching any other regex
+    # Fallback for any other branch.
     mode: ManualDeployment
     label: '{BranchName}'
     increment: Inherit
-    prevent-increment:
-      when-current-commit-tagged: true
     regex: (?<BranchName>.+)
     source-branches:
       - main
@@ -157,26 +137,13 @@ branches:
       - feature
       - pull-request
       - hotfix
-    is-source-branch-for: [ ]
-    is-main-branch: false
 
 # Global defaults (applied if not overridden by branch-specific settings)
 mode: ContinuousDelivery
-label: '{BranchName}'
 increment: Inherit
 prevent-increment:
-  of-merged-branch: false
-  when-branch-merged: false
   when-current-commit-tagged: true
-track-merge-target: false
-track-merge-message: true
 commit-message-incrementing: Enabled
-regex: ''
-source-branches: [ ]
-is-source-branch-for: [ ]
-tracks-release-branches: false
-is-release-branch: false
-is-main-branch: false
 
 ignore:
   sha: [ ]

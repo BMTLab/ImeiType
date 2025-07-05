@@ -12,13 +12,13 @@ jobs:
     continue-on-error: true
 
     steps:
-      - name: 📥 Download Coverage Artifact
-        uses: actions/download-artifact@v4
+      - name: 📥 Download Coverage Artifacts
+        uses: actions/download-artifact@v4.3.0
         with:
           name: coverage-report-${{ github.sha }}
           path: ${{ github.workspace }}/
 
       - name: 🧾 Upload coverage
-        uses: codecov/codecov-action@v5.2.0
+        uses: codecov/codecov-action@v5.4.3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

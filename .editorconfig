@@ -138,6 +138,9 @@ indent_size = 2
 [{*.yaml,*.yml}]
 indent_size = 2
 
+[Directory.Packages.props]
+indent_size = 2
+
 [{*.bash,*.bats,*.dash,*.ksh,*.mksh,*.sh,.bash_aliases,.bash_logout,.bash_profile,.bashrc,.profile}]
 indent_size = 2
 

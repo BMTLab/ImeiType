@@ -1,28 +1,49 @@
-<!--./Directory.Packages.props-->
+<!-- ./Directory.Packages.props -->
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
+  <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.1'">
+    <PackageVersion Include="System.Text.Json" Version="[5.0.0,6.0.0)"/>
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)'=='net6.0'">
+    <PackageVersion Include="System.Text.Json" Version="[6.0.10,7.0.0)"/>
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)'=='net7.0'">
+    <!-- System.Text.Json version 7.* has a known vulnerability -->
+    <PackageVersion Include="System.Text.Json" Version="[8.0.5,9.0.0)"/>
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)'=='net8.0'">
+    <PackageVersion Include="System.Text.Json" Version="[8.0.5,9.0.0)"/>
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)'=='net9.0'">
+    <PackageVersion Include="System.Text.Json" Version="[9.0.6,10.0.0)"/>
+  </ItemGroup>
   <ItemGroup Label="Annotations">
-    <PackageVersion Include="JetBrains.Annotations" Version="2025.1.0-eap1" />
+    <PackageVersion Include="JetBrains.Annotations" Version="2025.1.0-eap1"/>
   </ItemGroup>
   <ItemGroup Label="Analyzers">
-    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
-    <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.6.0.109712" />
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
-    <PackageVersion Include="GitVersion.MsBuild" Version="6.1.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="4.14.0"/>
+    <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.12.0.118525"/>
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0"/>
+    <PackageVersion Include="GitVersion.MsBuild" Version="6.3.0"/>
   </ItemGroup>
   <ItemGroup Label="Tests">
-    <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-    <PackageVersion Include="xunit" Version="2.9.3" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.0.2" />
+    <PackageVersion Include="BenchmarkDotNet" Version="0.15.2"/>
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1"/>
+    <PackageVersion Include="xunit" Version="2.9.3"/>
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.1"/>
     <!-- Since the version 8.0.0 FluentAssertions has a non-free license -->
-    <PackageVersion Include="FluentAssertions" Version="[7.0.0]" />
-    <PackageVersion Include="NSubstitute" Version="5.1.0" />
-    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
-    <PackageVersion Include="coverlet.msbuild" Version="6.0.4" />
-    <PackageVersion Include="GitHubActionsTestLogger" Version="2.4.1" />
+    <PackageVersion Include="FluentAssertions" Version="[7.2.0]"/>
+    <PackageVersion Include="NSubstitute" Version="5.1.0"/>
+    <PackageVersion Include="coverlet.collector" Version="6.0.4"/>
+    <PackageVersion Include="coverlet.msbuild" Version="6.0.4"/>
+    <PackageVersion Include="GitHubActionsTestLogger" Version="2.4.1"/>
+  </ItemGroup>
+  <!-- Packages for LEGACY test frameworks (net6.0, net7.0) -->
+  <ItemGroup Label="LegacyTests" Condition="'$(TargetFramework)'=='net6.0' Or '$(TargetFramework)'=='net7.0'">
+    <PackageVersion Update="Microsoft.NET.Test.Sdk" Version="17.8.0"/>
+    <PackageVersion Update="xunit.runner.visualstudio" Version="3.0.2"/>
   </ItemGroup>
 </Project>
