@@ -42,6 +42,12 @@ on:
 
   workflow_dispatch:
 
+# Set default, read-only permissions for all jobs in this workflow.
+# This establishes a secure-by-default baseline, following the principle of least privilege.
+# Any job that needs more permissions must explicitly request them, overriding this block.
+permissions:
+  contents: read
+
 env:
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
@@ -52,23 +58,35 @@ jobs:
   build-packages:
     name: 🏗️ Build, Test & Pack
     uses: ./.github/workflows/ci-build.yml
+    # This job uses the default read-only permissions defined at the top level,
+    # as the called workflow only needs to check out and read the code.
     secrets: inherit
 
   analyze-packages:
     name: 🔬 Code Analyze
-    # if it is not local debugging by the 'nektos/act' tool:
+    # If it is not local debugging by the 'nektos/act' tool:
     if: ${{ (github.event.act == 'false' || github.event.act == '') }}
     uses: ./.github/workflows/ci-analyze.yml
+    # Permissions are elevated here.
+    # The called workflow runs CodeQL, which requires 'security-events: write'
+    # to upload its findings to GitHub Security.
+    permissions:
+      contents: read
+      security-events: write
     secrets: inherit
 
   upload-coverage:
     name: 🧾 Code Coverage
     needs: build-packages
-    # if it is not local debugging by the 'nektos/act' tool,
-    # and the caller is not a bot:
+    # If it is not local debugging by the 'nektos/act' tool, and
+    # the job is skipped for Dependabot PRs because they don't have access to secrets.
     if: ${{ (github.event.act == 'false' || github.event.act == '')
       && github.actor != 'dependabot[bot]' }}
     uses: ./.github/workflows/ci-coverage.yml
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     secrets: inherit
 
   release-packages:
@@ -76,7 +94,7 @@ jobs:
     needs:
       - build-packages
       - analyze-packages
-    # if it is not local debugging by the 'nektos/act' tool,
+    # If it is not local debugging by the 'nektos/act' tool,
     # and a version tag is assigned:
     if: >-
       ${{ (github.event.act == 'false' || github.event.act == '')
@@ -84,4 +102,8 @@ jobs:
       && github.event_name == 'push'
       && (github.ref_type == 'tag' || github.ref_type == '') }}
     uses: ./.github/workflows/ci-release.yml
+    # This job requires the highest level of permissions ('contents: write') is mandatory
+    # for the called workflow to create a GitHub Release and upload assets to it.
+    permissions:
+      contents: write
     secrets: inherit
