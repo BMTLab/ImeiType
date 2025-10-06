@@ -15,9 +15,6 @@ jobs:
     if: ${{ vars.ENABLE_CODEQL_ANALYSIS == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    permissions:
-      contents: read
-      security-events: write # to upload CodeQL results
 
     steps:
       - name: ⚙ Checkout
@@ -45,8 +42,6 @@ jobs:
     if: ${{ vars.ENABLE_DOTNET_ANALYSIS == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    permissions:
-      contents: read
 
     steps:
       - name: ⚙ Checkout

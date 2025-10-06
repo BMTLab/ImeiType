@@ -42,11 +42,6 @@ on:
 
   workflow_dispatch:
 
-# Set default permissions for all jobs in this workflow.
-# The principle of least privilege is applied.
-permissions:
-  contents: read
-
 env:
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
