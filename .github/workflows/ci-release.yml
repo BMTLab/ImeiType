@@ -12,6 +12,8 @@ jobs:
     name: Verify Before Publish
     timeout-minutes: 10
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     outputs:
       version: ${{ steps.check_tag_version.outputs.version }}
@@ -51,6 +53,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
+    # This job does not interact with the GitHub API, so no permissions are needed.
+    permissions: { }
+
     steps:
       - name: ⚙ Setup .NET (for nuget)
         uses: actions/setup-dotnet@v5.0.0
@@ -76,6 +81,8 @@ jobs:
     if: ${{ needs.verify-tag.outputs.is_publishable == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: write # to create a GitHub Release and upload assets
 
     steps:
       - name: 📥 Download Packages
