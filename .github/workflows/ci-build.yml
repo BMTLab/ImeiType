@@ -21,12 +21,12 @@ jobs:
         run: echo '${{ github.ref_name }}'
 
       - name: ⚙ Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5.0.0
         with:
           fetch-depth: 0
 
       - name: ⚙ Setup .NET
-        uses: actions/setup-dotnet@v4.3.1
+        uses: actions/setup-dotnet@v5.0.0
         with:
           dotnet-version: |
             9.0.x

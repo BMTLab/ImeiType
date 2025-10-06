@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: ⚙ Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5.0.0
         with:
           fetch-depth: 2
 
@@ -27,15 +27,15 @@ jobs:
         run: git checkout HEAD^2
 
       - name: 🫙 Initialize CodeQL
-        uses: github/codeql-action/init@v3.29.2
+        uses: github/codeql-action/init@v3.30.6
         with:
           languages: csharp
 
       - name: 🛠️ Autobuild
-        uses: github/codeql-action/autobuild@v3.29.2
+        uses: github/codeql-action/autobuild@v3.30.6
 
       - name: 🩻 Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@vv3.29.2
+        uses: github/codeql-action/analyze@v3.30.6
 
   dotnet-format:
     name: .NET Analyzers
@@ -45,10 +45,10 @@ jobs:
 
     steps:
       - name: ⚙ Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5.0.0
 
       - name: ⚙ Setup .NET (for dotnet format)
-        uses: actions/setup-dotnet@v4.3.1
+        uses: actions/setup-dotnet@v5.0.0
         with:
           dotnet-version: 9.0.x
 

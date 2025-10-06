@@ -31,7 +31,7 @@ jobs:
           #######################################################
 
       - name: ⚙ Checkout Check Tag Action
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5.0.0
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -53,12 +53,12 @@ jobs:
 
     steps:
       - name: ⚙ Setup .NET (for nuget)
-        uses: actions/setup-dotnet@v4.3.1
+        uses: actions/setup-dotnet@v5.0.0
         with:
           dotnet-version: 9.0.x
 
       - name: 📥 Download Packages
-        uses: actions/download-artifact@v4.3.0
+        uses: actions/download-artifact@v5.0.0
         with:
           name: packages-${{ github.sha }}
           path: ${{ env.RELEASE_DIR }}
@@ -79,14 +79,14 @@ jobs:
 
     steps:
       - name: 📥 Download Packages
-        uses: actions/download-artifact@v4.3.0
+        uses: actions/download-artifact@v5.0.0
         with:
           name: packages-${{ github.sha }}
           path: ${{ env.RELEASE_DIR }}
 
       - name: 📯 Create GitHub Release
         id: create_release
-        uses: softprops/action-gh-release@v2.3.2
+        uses: softprops/action-gh-release@v2.3.4
         with:
           name: 'Release ${{ needs.verify-tag.outputs.version }}'
           generate_release_notes: true

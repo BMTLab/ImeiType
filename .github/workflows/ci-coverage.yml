@@ -13,12 +13,12 @@ jobs:
 
     steps:
       - name: 📥 Download Coverage Artifacts
-        uses: actions/download-artifact@v4.3.0
+        uses: actions/download-artifact@v5.0.0
         with:
           name: coverage-report-${{ github.sha }}
           path: ${{ github.workspace }}/
 
       - name: 🧾 Upload coverage
-        uses: codecov/codecov-action@v5.4.3
+        uses: codecov/codecov-action@v5.5.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
