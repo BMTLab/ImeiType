@@ -68,34 +68,32 @@ jobs:
     uses: ./.github/workflows/ci-build.yml
     # This job uses the default read-only permissions defined at the top level,
     # as the called workflow only needs to check out and read the code.
-    secrets: inherit
 
   analyze-packages:
     name: 🔬 Code Analyze
     # If it is not local debugging by the 'nektos/act' tool:
     if: ${{ (github.event.act == 'false' || github.event.act == '') }}
     uses: ./.github/workflows/ci-analyze.yml
-    # Permissions are elevated here.
     # The called workflow runs CodeQL, which requires 'security-events: write'
     # to upload its findings to GitHub Security.
     permissions:
       contents: read
       security-events: write
-    secrets: inherit
 
   upload-coverage:
     name: 🧾 Code Coverage
     needs: build-packages
-    # If it is not local debugging by the 'nektos/act' tool, and
-    # the job is skipped for Dependabot PRs because they don't have access to secrets.
+    # If it is not local debugging by the 'nektos/act' tool,
+    # and the job is skipped for Dependabot PRs because they don't have access to secrets:
     if: ${{ (github.event.act == 'false' || github.event.act == '')
       && github.actor != 'dependabot[bot]' }}
     uses: ./.github/workflows/ci-coverage.yml
     permissions:
-      contents: read
-      checks: write
-      pull-requests: write
-    secrets: inherit
+      contents: read       # to read commit data
+      checks: write        # to post status checks
+      pull-requests: write # to comment on pull requests
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   release-packages:
     name: 🛳️ Release
@@ -114,4 +112,5 @@ jobs:
     # for the called workflow to create a GitHub Release and upload assets to it.
     permissions:
       contents: write
-    secrets: inherit
+    secrets:
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}

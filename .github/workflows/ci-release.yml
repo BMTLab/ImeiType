@@ -1,8 +1,12 @@
 # .github/workflows/ci-release.yml
+
 name: Release Packages CI
 
 on:
   workflow_call:
+    secrets:
+      NUGET_API_KEY:
+        required: true
 
 env:
   RELEASE_DIR: release

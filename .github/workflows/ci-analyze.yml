@@ -1,4 +1,5 @@
 # .github/workflows/ci-analyze.yml
+
 name: Analyze CI
 
 on:
