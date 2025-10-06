@@ -9,6 +9,14 @@ on:
   schedule: # weekly launch on Wednesdays at 19:00 UTC
     - cron: '0 19 * * 3'
 
+# Concurrency control for standalone runs (manual or scheduled):
+# - This ensures that each manual or scheduled run is unique and does not cancel others.
+# - When this workflow is called by another workflow, these settings are ignored,
+#   and the caller's concurrency rules apply.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.run_id }}
+  cancel-in-progress: false
+
 jobs:
   codeql:
     name: CodeQL

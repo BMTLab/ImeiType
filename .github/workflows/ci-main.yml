@@ -42,6 +42,14 @@ on:
 
   workflow_dispatch:
 
+# Concurrency control:
+# - For pull requests, cancel any ongoing runs for the same PR.
+# - For pushes to a branch, cancel any ongoing runs for the same branch.
+# This ensures that only the latest commit is being tested.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 # Set default, read-only permissions for all jobs in this workflow.
 # This establishes a secure-by-default baseline, following the principle of least privilege.
 # Any job that needs more permissions must explicitly request them, overriding this block.
