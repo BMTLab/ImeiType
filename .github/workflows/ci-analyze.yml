@@ -50,9 +50,9 @@ jobs:
         uses: github/codeql-action/init@v3.30.6
         with:
           languages: csharp
-
-      - name: 🛠️ Autobuild
-        uses: github/codeql-action/autobuild@v3.30.6
+          # This mode skips the auto-build step, significantly speeding up the analysis.
+          # It works well for many standard .NET projects.
+          build-mode: none
 
       - name: 🩻 Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3.30.6
