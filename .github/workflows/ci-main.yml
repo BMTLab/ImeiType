@@ -64,8 +64,10 @@ jobs:
   upload-coverage:
     name: 🧾 Code Coverage
     needs: build-packages
-    # if it is not local debugging by the 'nektos/act' tool:
-    if: ${{ (github.event.act == 'false' || github.event.act == '') }}
+    # if it is not local debugging by the 'nektos/act' tool,
+    # and the caller is not a bot:
+    if: ${{ (github.event.act == 'false' || github.event.act == '')
+      && github.actor != 'dependabot[bot]' }}
     uses: ./.github/workflows/ci-coverage.yml
     secrets: inherit
 
