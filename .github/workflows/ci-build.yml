@@ -43,6 +43,14 @@ jobs:
         if: ${{ runner.debug == '1' || env.ACT == 'true' }}
         run: dotnet --version
 
+      - name: 🧰 Cache .NET Tools
+        uses: actions/cache@v4.3.0
+        with:
+          path: ~/.dotnet/tools
+          key: ${{ runner.os }}-dotnet-tools-${{ hashFiles('**/dotnet-tools.json') }}
+          restore-keys: |
+            ${{ runner.os }}-dotnet-tools-
+
       - name: 🪛 Install .NET Tools
         run: dotnet tool restore
 
