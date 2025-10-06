@@ -12,6 +12,12 @@ on:
 jobs:
   codeql:
     name: CodeQL
+    # This job provides an advanced, custom CodeQL configuration.
+    # It's disabled by default because this repository uses GitHub's "Default Setup" for CodeQL.
+    # Running both will cause an upload error.
+    # To enable this:
+    # 1. Disable "Default Setup" in repository settings.
+    # 2. Set the `ENABLE_CODEQL_ANALYSIS` repository variable to `true`.
     if: ${{ vars.ENABLE_CODEQL_ANALYSIS == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
