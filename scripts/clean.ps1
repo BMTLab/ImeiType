@@ -50,7 +50,11 @@ function Main
     Write-Host "Starting full cleaning process..."
 
     # List of patterns for directories to clean
-    $dirPatterns = @('build*', 'bin', 'obj', 'artifacts', 'out', 'StrykerOutput')
+    $dirPatterns = @(
+        'build*', 'bin', 'obj', 'artifacts', 'out',
+        'StrykerOutput',
+        'coverage-results', 'coverage-final', 'coveragereport', 'test-results'
+    )
 
     # Clean directories
     foreach ($pattern in $dirPatterns)
@@ -58,7 +62,12 @@ function Main
         Clean-Directories -Pattern $pattern
     }
 
-    $filesPatterns = @('VERSION.g.txt', 'packages.lock.json',  '.AssemblyAttributes')
+    $filesPatterns = @(
+        'VERSION.g.txt',
+        'packages.lock.json',
+        '.AssemblyAttributes',
+        'coverage.*'
+    )
 
     # Clean files
     foreach ($pattern in $filesPatterns)

@@ -50,11 +50,14 @@ main() {
   clean_directories 'artifacts'
   clean_directories 'out'
   clean_directories 'StrykerOutput'
+  clean_directories 'coverage-results'
+  clean_directories 'test-results'
 
   # Clean files with specific patterns
   clean_files 'VERSION.g.txt'
   clean_files 'packages.lock.json'
   clean_files '.AssemblyAttributes'
+  clean_files '*.opencover.xml'
 
   printf 'Cleaning completed!\n'
 }

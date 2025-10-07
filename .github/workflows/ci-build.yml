@@ -14,6 +14,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+      checks: write  # for the test reporter to create annotations on PRs
 
     env:
       NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
@@ -59,29 +60,44 @@ jobs:
       - name: 🧩 Restore Dependencies
         run: dotnet restore --locked-mode
 
-      - name: 🚧 Show Git Version
-        if: ${{ runner.debug == '1' || env.ACT == 'true' }}
-        run: dotnet gitversion /output
+      - name: ℹ️ Get Version Information
+        id: gitversion # give the step an ID to reference its output
+        run: |
+          echo 'json<<EOF' >> $GITHUB_OUTPUT
+          dotnet gitversion /output json >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
 
       - name: 🛠️ Build
         run: dotnet build -c Release --no-restore
 
       - name: 🔧 Rebuild project if failed
-        # This step should not be run,
-        # it's here in case there are any problems with restoring nuget packages from the cache,
-        # and also to get a more detailed build log to see what the problem was:
         if: ${{ failure() }}
         run: |
           chmod +x scripts/clean.sh || true
           ./scripts/clean.sh || true
           dotnet build -c Release -v detailed
 
-      - name: 🧪 Run Tests
+      - name: 🔧 Install ReportGenerator
+        run: dotnet tool install -g dotnet-reportgenerator-globaltool
+
+      - name: 🧪 Run Tests & Generate Individual Coverage Reports
+        id: run_tests
+        continue-on-error: true
         run: |
-          echo '## Test results' >> $GITHUB_STEP_SUMMARY
-          dotnet test -c Release -v minimal --no-build --logger GitHubActions \
-            '/p:CollectCoverage=true;CoverletOutputFormat="json,lcov,cobertura";MergeWith=${{github.workspace}}/coverage.json;CoverletOutput=${{github.workspace}}/coverage' \
-            -- RunConfiguration.CollectSourceInformation=true
+          dotnet test -c Release --no-build -v minimal \
+          '/p:CollectCoverage=true' \
+          '/p:CoverletOutputFormat="json,lcov,cobertura"' \
+          '/p:MergeWith=${{github.workspace}}/coverage.json' \
+          '/p:CoverletOutput=${{github.workspace}}/coverage' \
+          -- RunConfiguration.CollectSourceInformation=true
+
+      - name: 🤝 Merge Coverage Reports
+        if: always()
+        run: |
+          reportgenerator \
+            "-reports:coverage.*.cobertura.xml" \
+            "-targetdir:coverage-report" \
+            "-reporttypes:Html_Dark;Cobertura"
 
       - name: 📦 Pack Packages
         run: |
@@ -90,6 +106,18 @@ jobs:
             --no-build \
             --include-symbols \
             --include-source
+
+      - name: 📦 Add Packaged Artifacts to Summary
+        if: always()
+        run: |
+          echo '' >> $GITHUB_STEP_SUMMARY
+          echo '### 📦 Packaged Artifacts' >> $GITHUB_STEP_SUMMARY
+          PACKAGES=$(ls -1 artifacts/package/release/*.nupkg 2>/dev/null | sed 's/^/- `/' | sed 's/$/`/')
+          if [ -z "$PACKAGES" ]; then
+            echo 'No packages were created' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "$PACKAGES" >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: 📤 Upload Packages Artifacts
         uses: actions/upload-artifact@v4.6.2
@@ -103,5 +131,5 @@ jobs:
         uses: actions/upload-artifact@v4.6.2
         with:
           name: coverage-report-${{ github.sha }}
-          path: ${{ github.workspace }}/coverage*
+          path: ${{ github.workspace }}/coverage-report/*
           retention-days: 1

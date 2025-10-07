@@ -66,8 +66,9 @@ jobs:
   build-packages:
     name: 🏗️ Build, Test & Pack
     uses: ./.github/workflows/ci-build.yml
-    # This job uses the default read-only permissions defined at the top level,
-    # as the called workflow only needs to check out and read the code.
+    permissions:
+      contents: read
+      checks: write
 
   analyze-packages:
     name: 🔬 Code Analyze

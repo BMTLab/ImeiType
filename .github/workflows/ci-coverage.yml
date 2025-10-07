@@ -27,9 +27,11 @@ jobs:
         uses: actions/download-artifact@v5.0.0
         with:
           name: coverage-report-${{ github.sha }}
-          path: ${{ github.workspace }}/
+          path: ${{ github.workspace }}/coverage-report
 
       - name: 🧾 Upload coverage
         uses: codecov/codecov-action@v5.5.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          disable_search: true
+          files: ${{ github.workspace }}/coverage-report/Cobertura.xml
