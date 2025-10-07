@@ -82,21 +82,19 @@ jobs:
 
       - name: 🧪 Test + Coverage (Cobertura via XPlat)
         run: |
-          dotnet test -c Release --no-build \
-            --results-directory ./TestResults \
+          dotnet test -c Release --no-build  -v minimal \
+            --results-directory ./test-results \
             --collect:"XPlat Code Coverage;Format=cobertura" \
+            -- RunConfiguration.CollectSourceInformation=true \
             --logger GitHubActions
 
       - name: 🤝 Merge Coverage Reports
         if: always()
         run: |
           reportgenerator \
-            -reports:"TestResults/**/coverage.cobertura.xml" \
-            -targetdir:"CoverageReport" \
+            -reports:"test-results/**/coverage.cobertura.xml" \
+            -targetdir:"coverage-report" \
             -reporttypes:"Cobertura;HtmlInline_AzurePipelines_Dark"
-          echo '### ✅ Coverage summary' >> $GITHUB_STEP_SUMMARY
-          echo 'Merged Cobertura: `CoverageReport/Cobertura.xml`' >> $GITHUB_STEP_SUMMARY
-          echo 'Open HTML: CoverageReport/index.html' >> $GITHUB_STEP_SUMMARY
 
       - name: 📦 Pack Packages
         run: |
@@ -105,6 +103,19 @@ jobs:
             --no-build \
             --include-symbols \
             --include-source
+
+      - name: 📊 Generate Build Summary
+        if: always()
+        run: |
+          $gv = '${{ steps.gitversion.outputs.json }}' | ConvertFrom-Json
+          echo "## 🚀 Build, Test & Pack Summary" >> $env:GITHUB_STEP_SUMMARY
+          echo "### 📊 Build Information" >> $env:GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $env:GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $env:GITHUB_STEP_SUMMARY
+          echo ("| Version | **{0}** |" -f $gv.SemVer) >> $env:GITHUB_STEP_SUMMARY
+          echo ("| Branch | `{0}` |" -f $gv.BranchName) >> $env:GITHUB_STEP_SUMMARY
+          echo ("| Commit | `{0}` |" -f $gv.Sha.Substring(0,7)) >> $env:GITHUB_STEP_SUMMARY
+        shell: pwsh
 
       - name: 📦 Add Packaged Artifacts to Summary
         if: always()
@@ -130,5 +141,5 @@ jobs:
         uses: actions/upload-artifact@v4.6.2
         with:
           name: coverage-report-${{ github.sha }}
-          path: CoverageReport/**
-          retention-days: 7
+          path: coverage-report/**
+          retention-days: 14

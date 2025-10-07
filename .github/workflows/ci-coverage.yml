@@ -23,7 +23,7 @@ jobs:
       pull-requests: write # to comment on pull requests
 
     steps:
-      - name: ⚙ Checkout (same SHA)
+      - name: ⚙ Checkout
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
@@ -42,6 +42,5 @@ jobs:
           files: coverage-report/Cobertura.xml
           flags: unittests
           name: coverage-${{ github.run_id }}
-          root_dir: ${{ github.workspace }}
           disable_search: true
           verbose: true
