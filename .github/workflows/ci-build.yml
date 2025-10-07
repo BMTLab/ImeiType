@@ -62,7 +62,6 @@ jobs:
       - name: 🚧 Show Git Version
         if: ${{ runner.debug == '1' || env.ACT == 'true' }}
         run: dotnet gitversion /output
-        shell: bash
 
       - name: 🛠️ Build
         run: dotnet build -c Release --no-restore
