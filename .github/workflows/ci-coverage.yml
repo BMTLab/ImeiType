@@ -23,6 +23,12 @@ jobs:
       pull-requests: write # to comment on pull requests
 
     steps:
+      - name: ⚙ Checkout (same SHA)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+
       - name: 📥 Download Coverage Artifacts
         uses: actions/download-artifact@v5.0.0
         with:
@@ -33,5 +39,9 @@ jobs:
         uses: codecov/codecov-action@v5.5.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage-report/Cobertura.xml
+          flags: unittests
+          name: coverage-${{ github.run_id }}
+          root_dir: ${{ github.workspace }}
           disable_search: true
-          files: ${{ github.workspace }}/coverage-report/Cobertura.xml
+          verbose: true

@@ -80,24 +80,23 @@ jobs:
       - name: 🔧 Install ReportGenerator
         run: dotnet tool install -g dotnet-reportgenerator-globaltool
 
-      - name: 🧪 Run Tests & Generate Individual Coverage Reports
-        id: run_tests
-        continue-on-error: true
+      - name: 🧪 Test + Coverage (Cobertura via XPlat)
         run: |
-          dotnet test -c Release --no-build -v minimal \
-          '/p:CollectCoverage=true' \
-          '/p:CoverletOutputFormat="json,lcov,cobertura"' \
-          '/p:MergeWith=${{github.workspace}}/coverage.json' \
-          '/p:CoverletOutput=${{github.workspace}}/coverage' \
-          -- RunConfiguration.CollectSourceInformation=true
+          dotnet test -c Release --no-build \
+            --results-directory ./TestResults \
+            --collect:"XPlat Code Coverage;Format=cobertura" \
+            --logger GitHubActions
 
       - name: 🤝 Merge Coverage Reports
         if: always()
         run: |
           reportgenerator \
-            "-reports:coverage.*.cobertura.xml" \
-            "-targetdir:coverage-report" \
-            "-reporttypes:Html_Dark;Cobertura"
+            -reports:"TestResults/**/coverage.cobertura.xml" \
+            -targetdir:"CoverageReport" \
+            -reporttypes:"Cobertura;HtmlInline_AzurePipelines_Dark"
+          echo '### ✅ Coverage summary' >> $GITHUB_STEP_SUMMARY
+          echo 'Merged Cobertura: `CoverageReport/Cobertura.xml`' >> $GITHUB_STEP_SUMMARY
+          echo 'Open HTML: CoverageReport/index.html' >> $GITHUB_STEP_SUMMARY
 
       - name: 📦 Pack Packages
         run: |
@@ -131,5 +130,5 @@ jobs:
         uses: actions/upload-artifact@v4.6.2
         with:
           name: coverage-report-${{ github.sha }}
-          path: ${{ github.workspace }}/coverage-report/*
-          retention-days: 1
+          path: CoverageReport/**
+          retention-days: 7
