@@ -20,10 +20,6 @@ jobs:
       NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
 
     steps:
-      - name: 🚧 Print current branch
-        if: ${{ runner.debug == '1' }}
-        run: echo '${{ github.ref_name }}'
-
       - name: ⚙ Checkout
         uses: actions/checkout@v5.0.0
         with:
