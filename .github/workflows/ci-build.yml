@@ -17,7 +17,6 @@ jobs:
 
     env:
       NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
-      DOTNET_TOOLS: ${{ env.HOME }}/.dotnet/tools
 
     steps:
       - name: 🚧 Print current branch
@@ -28,6 +27,9 @@ jobs:
         uses: actions/checkout@v5.0.0
         with:
           fetch-depth: 0
+
+      - name: ⚙ Setup Environment
+        run: echo "DOTNET_TOOLS=${HOME}/.dotnet/tools" >> $GITHUB_ENV
 
       - name: ⚙ Setup .NET
         uses: actions/setup-dotnet@v5.0.0
