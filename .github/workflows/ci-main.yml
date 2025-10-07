@@ -43,7 +43,7 @@ on:
   workflow_dispatch:
 
 # Concurrency control:
-# - For pull requests, cancel any ongoing runs for the same PR.
+# - For pull requests, cancel any ongoing runs for the same PR;
 # - For pushes to a branch, cancel any ongoing runs for the same branch.
 # This ensures that only the latest commit is being tested.
 concurrency:
@@ -75,7 +75,7 @@ jobs:
     if: ${{ (github.event.act == 'false' || github.event.act == '') }}
     uses: ./.github/workflows/ci-analyze.yml
     # The called workflow runs CodeQL, which requires 'security-events: write'
-    # to upload its findings to GitHub Security.
+    # to upload its findings to GitHub Security:
     permissions:
       contents: read
       security-events: write
@@ -109,7 +109,7 @@ jobs:
       && (github.ref_type == 'tag' || github.ref_type == '') }}
     uses: ./.github/workflows/ci-release.yml
     # This job requires the highest level of permissions ('contents: write') is mandatory
-    # for the called workflow to create a GitHub Release and upload assets to it.
+    # for the called workflow to create a GitHub Release and upload assets to it:
     permissions:
       contents: write
     secrets:

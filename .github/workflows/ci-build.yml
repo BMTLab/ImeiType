@@ -67,11 +67,14 @@ jobs:
         run: dotnet build -c Release --no-restore
 
       - name: 🔧 Rebuild project if failed
+        # This step should not be run,
+        # it's here in case there are any problems with restoring nuget packages from the cache,
+        # and also to get a more detailed build log to see what the problem was:
         if: ${{ failure() }}
         run: |
           chmod +x scripts/clean.sh || true
           ./scripts/clean.sh || true
-          dotnet build -c Release -v normal
+          dotnet build -c Release -v detailed
 
       - name: 🧪 Run Tests
         run: |

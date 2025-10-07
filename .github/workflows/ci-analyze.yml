@@ -11,7 +11,7 @@ on:
     - cron: '0 19 * * 3'
 
 # Concurrency control for standalone runs (manual or scheduled):
-# - This ensures that each manual or scheduled run is unique and does not cancel others.
+# - This ensures that each manual or scheduled run is unique and does not cancel others;
 # - When this workflow is called by another workflow, these settings are ignored,
 #   and the caller's concurrency rules apply.
 concurrency:
@@ -39,7 +39,7 @@ jobs:
         uses: actions/checkout@v5.0.0
         with:
           # Fetch all history for all branches and tags.
-          # This is required for tools like GitVersion that analyze commit history.
+          # This is required for tools like GitVersion that analyze commit history:
           fetch-depth: 0
 
       - name: ⚙ Checkout PR
@@ -51,7 +51,7 @@ jobs:
         with:
           languages: csharp
           # This mode skips the auto-build step, significantly speeding up the analysis.
-          # It works well for many standard .NET projects.
+          # It works well for standard .NET projects:
           build-mode: none
 
       - name: 🩻 Perform CodeQL Analysis

@@ -57,13 +57,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
-    # This job does not interact with the GitHub API, so no permissions are needed.
+    # This job does not interact with the GitHub API, so no permissions are needed:
     permissions: { }
 
     steps:
       - name: ⚙ Setup .NET (for nuget)
         # We are installing dotnet just to get the dotnet nuget command available,
-        # building projects and packaging has already been done previously
+        # building projects and packaging has already been done previously.
         uses: actions/setup-dotnet@v5.0.0
         with:
           dotnet-version: 9.0.x

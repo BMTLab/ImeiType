@@ -16,7 +16,7 @@ jobs:
     continue-on-error: true
 
     # Permissions are needed for the codecov-action to post results
-    # back to a pull request or checks.
+    # back to a pull request or checks:
     permissions:
       contents: read       # to read commit data
       checks: write        # to post status checks
