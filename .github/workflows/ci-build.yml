@@ -113,16 +113,39 @@ jobs:
           echo ("| Commit | `{0}` |" -f $gv.Sha.Substring(0,7)) >> $env:GITHUB_STEP_SUMMARY
         shell: pwsh
 
-      - name: 📦 Add Packaged Artifacts to Summary
+      - name: 📊 Append Coverage to Summary
+        if: always()
+        run: |
+          md='coverage-report/SummaryGithub.md'
+          txt='coverage-report/Summary.txt'
+          
+          echo '' >> "$GITHUB_STEP_SUMMARY"
+          if [ -f "$md" ]; then
+            sed -E \
+              -e 's/^# Summary$/## 📝 Code Coverage/' \
+              -e 's/^## Coverage/### Coverage details/' \
+              "$md" >> $GITHUB_STEP_SUMMARY
+          else
+            echo '## 📝 Code Coverage' >> $GITHUB_STEP_SUMMARY
+            echo '_Coverage markdown summary not found._' >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -f "$txt" ]; then
+            echo '' >> $GITHUB_STEP_SUMMARY
+            echo '#### Quick totals' >> $GITHUB_STEP_SUMMARY
+            grep -E '^(Line|Branch|Method) coverage' "$txt" | sed 's/^/> /' >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: 📊 Add Packaged Artifacts to Summary
         if: always()
         run: |
           echo '' >> $GITHUB_STEP_SUMMARY
           echo '### 📦 Packaged Artifacts' >> $GITHUB_STEP_SUMMARY
-          PACKAGES=$(ls -1 artifacts/package/release/*.nupkg 2>/dev/null | sed 's/^/- `/' | sed 's/$/`/')
-          if [ -z "$PACKAGES" ]; then
+          packages=$(ls -1 artifacts/package/release/*.nupkg 2>/dev/null | sed 's/^/- `/' | sed 's/$/`/')
+          if [ -z "$packages" ]; then
             echo 'No packages were created' >> $GITHUB_STEP_SUMMARY
           else
-            echo "$PACKAGES" >> $GITHUB_STEP_SUMMARY
+            echo "$packages" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: 📤 Upload Packages Artifacts
