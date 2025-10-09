@@ -53,7 +53,7 @@ function Main
     $dirPatterns = @(
         'build*', 'bin', 'obj', 'artifacts', 'out',
         'StrykerOutput',
-        'coverage-reports', 'test-results'
+        'coverage-report', 'test-results'
     )
 
     # Clean directories
