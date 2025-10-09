@@ -90,7 +90,10 @@ jobs:
           reportgenerator \
             -reports:"test-results/**/coverage.cobertura.xml" \
             -targetdir:"coverage-report" \
-            -reporttypes:"Cobertura;HtmlInline_AzurePipelines_Dark"
+            -reporttypes:"Cobertura;HtmlInline_AzurePipelines_Dark;MarkdownSummaryGithub;TextSummary"
+          echo '### 🧪 Coverage artifacts' >> $GITHUB_STEP_SUMMARY
+          echo '* Cobertura: `coverage-report/Cobertura.xml`' >> $GITHUB_STEP_SUMMARY
+          echo '* HTML: `coverage-report/index.html`' >> $GITHUB_STEP_SUMMARY
 
       - name: 📦 Pack Packages
         run: |
@@ -103,9 +106,8 @@ jobs:
       - name: 📊 Generate Build Summary
         if: always()
         run: |
+          echo "## 📊 Build Information" >> $env:GITHUB_STEP_SUMMARY
           $gv = '${{ steps.gitversion.outputs.json }}' | ConvertFrom-Json
-          echo "## 🚀 Build, Test & Pack Summary" >> $env:GITHUB_STEP_SUMMARY
-          echo "### 📊 Build Information" >> $env:GITHUB_STEP_SUMMARY
           echo "| Property | Value |" >> $env:GITHUB_STEP_SUMMARY
           echo "|---|---|" >> $env:GITHUB_STEP_SUMMARY
           echo ("| Version | **{0}** |" -f $gv.SemVer) >> $env:GITHUB_STEP_SUMMARY
@@ -126,8 +128,8 @@ jobs:
               -e 's/^## Coverage/### Coverage details/' \
               "$md" >> $GITHUB_STEP_SUMMARY
           else
-            echo '## 📝 Code Coverage' >> $GITHUB_STEP_SUMMARY
-            echo '_Coverage markdown summary not found._' >> $GITHUB_STEP_SUMMARY
+            echo '### 📝 Code Coverage' >> $GITHUB_STEP_SUMMARY
+            echo '~~Coverage markdown summary not found.~~' >> $GITHUB_STEP_SUMMARY
           fi
           
           if [ -f "$txt" ]; then
