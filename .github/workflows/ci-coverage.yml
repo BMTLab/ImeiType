@@ -13,7 +13,6 @@ jobs:
     name: Upload Coverage
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true
 
     # Permissions are needed for the codecov-action to post results
     # back to a pull request or checks:

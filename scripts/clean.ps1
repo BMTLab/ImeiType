@@ -53,7 +53,8 @@ function Main
     $dirPatterns = @(
         'build*', 'bin', 'obj', 'artifacts', 'out',
         'StrykerOutput',
-        'coverage-report', 'test-results'
+        'coverage-report', 'test-results',
+        'dotnet-analyzes'
     )
 
     # Clean directories

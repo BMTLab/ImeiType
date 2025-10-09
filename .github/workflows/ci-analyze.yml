@@ -18,13 +18,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.run_id }}
   cancel-in-progress: false
 
-env:
-  DOTNET_NOLOGO: true
-  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
-  DOTNET_CLI_TELEMETRY_OPTOUT: 1
-  MSBUILDDISABLENODEREUSE: ${{ vars.MSBUILDDISABLENODEREUSE || '1' }}
-  NUGET_XMLDOC_MODE: ${{ vars.NUGET_XMLDOC_MODE || 'skip' }}
-
 jobs:
   codeql:
     name: CodeQL
@@ -63,30 +56,150 @@ jobs:
       - name: 🩻 Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3.30.6
 
-  dotnet-format:
-    name: .NET Analyzers
+  dotnet-analyzes:
+    name: .NET Analyzes
     if: ${{ vars.ENABLE_DOTNET_ANALYSIS == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     permissions:
       contents: read
+    env:
+      # Directories
+      DOTNET_ANALYZES: dotnet-analyzes
+
+      # Performance / Noise
+      DOTNET_NOLOGO: true
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+      # Disables "reuse" of MSBuild nodes (worker processes).
+      # Equivalent to the msbuild /nr:false flag - after build, auxiliary processes are not left hanging:
+      MSBUILDDISABLENODEREUSE: ${{ vars.MSBUILDDISABLENODEREUSE || '1' }}
+      # Disables extract XML documentation files from NuGet packages when restoring (they are just skipped).
+      # Useful for CIs where you don't need IntelliSense on dependencies:
+      NUGET_XMLDOC_MODE: ${{ vars.NUGET_XMLDOC_MODE || 'skip' }}
 
     steps:
       - name: ⚙ Checkout
         uses: actions/checkout@v5.0.0
 
-      - name: ⚙ Setup .NET (for dotnet format)
+      - name: ⚙ Setup .NET
         uses: actions/setup-dotnet@v5.0.0
         with:
-          dotnet-version: 9.0.x
+          dotnet-version: |
+            9.0.x
+            8.0.x
+            7.0.x
+            6.0.x
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
 
-      - name: 🩻 Perform .NET Analysis
+      - name: 🧩 Restore Dependencies
+        run: dotnet restore --locked-mode
+
+      - name: ⚙ Create Analyzes Directory
+        run: mkdir -p "$DOTNET_ANALYZES"
+
+      - name: 📦 Detect Outdated NuGet Packages
         run: |
-          # The results of the analysis are usually strange, 
-          # just get the warning messages and double-check yourself:
-          dotnet format analyzers \
-            --severity info \
-            --verify-no-changes \
-            --include src \
-            --verbosity detailed
+          set -o pipefail
+          outdated_report='outdated-report.txt'
+          
+          echo '::group::List packages'
+          {
+            dotnet list package \
+              --outdated \
+              --include-transitive \
+              | tee "${DOTNET_ANALYZES}"/"${outdated_report}"
+          }
+          echo '::endgroup::'
+
+          {
+            echo '### 📦 NuGet: Outdated packages'
+            echo
+            echo '```text'
+            cat "${DOTNET_ANALYZES}"/"${outdated_report}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
         continue-on-error: true
+
+      - name: 🛡️ Detect Vulnerable NuGet Packages
+        run: |
+          set -o pipefail
+          vulnerable_report='vulnerable-report.txt'
+          
+          echo '::group::List packages'
+          {
+            dotnet list package \
+              --vulnerable \
+              --include-transitive \
+              | tee "${DOTNET_ANALYZES}"/"${vulnerable_report}"
+          }
+          echo '::endgroup::'
+
+          {
+            echo '### 🛡️ NuGet: Vulnerable packages'
+            echo
+            echo '```text'
+            cat "${DOTNET_ANALYZES}"/"${vulnerable_report}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+        continue-on-error: true
+
+      - name: 🩻 Detect .NET Format Issues
+        run: |
+          set -o pipefail
+          format_report_log='format-report.log'
+          
+          echo '::group::Perform dotnet-format'
+          {
+            dotnet format analyzers \
+              --severity info \
+              --verify-no-changes \
+              --include src \
+              --verbosity diagnostic \
+              --report "$DOTNET_ANALYZES" | tee "${DOTNET_ANALYZES}"/"${format_report_log}"
+          }
+          echo '::endgroup::'
+          
+          echo '::group::Summary tail'
+          tail -n 20 "${DOTNET_ANALYZES}"/"${format_report_log}" || true
+          echo '::endgroup::'
+        continue-on-error: true
+
+      - name: 🧾 Append .NET Format Report to Summary
+        if: ${{ always() }}
+        run: |
+          format_report="${DOTNET_ANALYZES}/format-report.json"
+
+          # Fallback: if the standard report file is renamed in the feature version, take any .json in the folder
+          echo '::group::Look for dotnet-format JSON report '
+          if [ ! -f "$format_report" ]; then
+            alt_json=$(ls -1 "${DOTNET_ANALYZES}"/*.json 2>/dev/null | head -n1 || true)
+            if [ -n "$alt_json" ]; then
+              format_report="$alt_json"
+              echo "Info: Falling back to '$format_report'"
+            else
+              echo "Warn: No JSON report found in '${DOTNET_ANALYZES}'" >&2
+            fi
+          fi
+          echo '::endgroup::'
+
+          {
+            echo '### 🧾 .NET Format Report'
+            if [ -f "$format_report" ]; then
+              echo
+              echo '```json'
+              cat "$format_report"
+              echo '```'
+            else
+              echo 'Warn: No JSON report found'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 📤 Upload Analyzers Reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: ${{ env.DOTNET_ANALYZES }}-${{ github.sha }}
+          path: ${{ env.DOTNET_ANALYZES }}/*
+          if-no-files-found: warn
