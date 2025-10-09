@@ -18,15 +18,21 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.run_id }}
   cancel-in-progress: false
 
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  MSBUILDDISABLENODEREUSE: ${{ vars.MSBUILDDISABLENODEREUSE || '1' }}
+  NUGET_XMLDOC_MODE: ${{ vars.NUGET_XMLDOC_MODE || 'skip' }}
+
 jobs:
   codeql:
     name: CodeQL
     # This job provides an advanced, custom CodeQL configuration.
     # It's disabled by default because this repository uses GitHub's "Default Setup" for CodeQL.
-    # Running both will cause an upload error.
-    # To enable this:
-    # 1. Disable "Default Setup" in repository settings.
-    # 2. Set the `ENABLE_CODEQL_ANALYSIS` repository variable to `true`.
+    # Running both will cause an upload error; to enable this:
+    #   1. Disable "Default Setup" in repository settings.
+    #   2. Set the `ENABLE_CODEQL_ANALYSIS` repository variable to `true`.
     if: ${{ vars.ENABLE_CODEQL_ANALYSIS == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -81,5 +87,6 @@ jobs:
           dotnet format analyzers \
             --severity info \
             --verify-no-changes \
-            --include src
+            --include src \
+            --verbosity detailed
         continue-on-error: true

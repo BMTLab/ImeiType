@@ -11,22 +11,34 @@ jobs:
   build:
     name: Build Project
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     permissions:
       contents: read
-      checks: write  # for the test reporter to create annotations on PRs
-
+      checks: write # to create annotations on PRs
     env:
-      NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+      # Directories
+      DOTNET_TOOLS: ~/.dotnet/tools
+      TEST_RESULTS: test-results
+      COVERAGE_REPORT: coverage-report
+      PACKAGE_RELEASE: artifacts/package/release
+
+      # Performance / Noise
+      DOTNET_NOLOGO: true
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+      # Disables "reuse" of MSBuild nodes (worker processes).
+      # Equivalent to the msbuild /nr:false flag - after build, auxiliary processes are not left hanging:
+      MSBUILDDISABLENODEREUSE: ${{ vars.MSBUILDDISABLENODEREUSE || '1' }}
+      # Disables extract XML documentation files from NuGet packages when restoring (they are just skipped).
+      # Useful for CIs where you don't need IntelliSense on dependencies:
+      NUGET_XMLDOC_MODE: ${{ vars.NUGET_XMLDOC_MODE || 'skip' }}
 
     steps:
+      ### Setup
       - name: ⚙ Checkout
         uses: actions/checkout@v5.0.0
         with:
           fetch-depth: 0
-
-      - name: ⚙ Setup Environment
-        run: echo "DOTNET_TOOLS=${HOME}/.dotnet/tools" >> $GITHUB_ENV
 
       - name: ⚙ Setup .NET
         uses: actions/setup-dotnet@v5.0.0
@@ -57,54 +69,17 @@ jobs:
         run: dotnet restore --locked-mode
 
       - name: ℹ️ Get Version Information
-        id: gitversion # give the step an ID to reference its output
+        id: gitversion
         run: |
-          echo 'json<<EOF' >> $GITHUB_OUTPUT
-          dotnet gitversion /output json >> $GITHUB_OUTPUT
-          echo 'EOF' >> $GITHUB_OUTPUT
-
-      - name: 🛠️ Build
-        run: dotnet build -c Release --no-restore
-
-      - name: 🔧 Rebuild project if failed
-        if: ${{ failure() }}
-        run: |
-          chmod +x scripts/clean.sh || true
-          ./scripts/clean.sh || true
-          dotnet build -c Release -v detailed
-
-      - name: 🔧 Install ReportGenerator
-        run: dotnet tool install -g dotnet-reportgenerator-globaltool
-
-      - name: 🧪 Test + Coverage (Cobertura via XPlat)
-        run: |
-          dotnet test -c Release --no-build  -v minimal \
-            --results-directory ./test-results \
-            --collect:"XPlat Code Coverage;Format=cobertura" \
-            -- RunConfiguration.CollectSourceInformation=true \
-            --logger GitHubActions
-
-      - name: 🤝 Merge Coverage Reports
-        if: always()
-        run: |
-          reportgenerator \
-            -reports:"test-results/**/coverage.cobertura.xml" \
-            -targetdir:"coverage-report" \
-            -reporttypes:"Cobertura;HtmlInline_AzurePipelines_Dark;MarkdownSummaryGithub;TextSummary"
-          echo '### 🧪 Coverage artifacts' >> $GITHUB_STEP_SUMMARY
-          echo '* Cobertura: `coverage-report/Cobertura.xml`' >> $GITHUB_STEP_SUMMARY
-          echo '* HTML: `coverage-report/index.html`' >> $GITHUB_STEP_SUMMARY
-
-      - name: 📦 Pack Packages
-        run: |
-          dotnet pack \
-            -c Release \
-            --no-build \
-            --include-symbols \
-            --include-source
+          {
+            echo 'json<<EOF'
+            dotnet gitversion /output json
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+          #######################################################
 
       - name: 📊 Generate Build Summary
-        if: always()
+        if: ${{ always() }}
         run: |
           echo "## 📊 Build Information" >> $env:GITHUB_STEP_SUMMARY
           $gv = '${{ steps.gitversion.outputs.json }}' | ConvertFrom-Json
@@ -115,52 +90,120 @@ jobs:
           echo ("| Commit | `{0}` |" -f $gv.Sha.Substring(0,7)) >> $env:GITHUB_STEP_SUMMARY
         shell: pwsh
 
-      - name: 📊 Append Coverage to Summary
-        if: always()
+
+      ### Building
+      - name: 🛠️ Build
         run: |
-          md='coverage-report/SummaryGithub.md'
-          txt='coverage-report/Summary.txt'
+          dotnet build -c Release --no-restore
+
+      - name: 🔧 Rebuild project if failed
+        # This step should not be run,
+        # it's here in case there are any problems with restoring nuget packages from the cache,
+        # and also to get a more detailed build log to see what the problem was:
+        if: ${{ failure() }}
+        run: |
+          if (Test-Path ./scripts/clean.ps1) {
+            Write-Host "::group::Cleaning"
+            ./scripts/clean.ps1
+            Write-Host "::endgroup::"
+          }
+          dotnet build -c Release --verbosity detailed
+        shell: pwsh
+
+
+      ### Testing
+      - name: 🔧 Install ReportGenerator
+        run: |
+          # Update or install tool
+          dotnet tool update -g dotnet-reportgenerator-globaltool \
+            || dotnet tool install -g dotnet-reportgenerator-globaltool
+
+      - name: 🧪 Test + Coverage (Cobertura via XPlat)
+        run: |
+          dotnet test -c Release --no-build  -v minimal \
+            --results-directory "./${TEST_RESULTS}" \
+            --collect:"XPlat Code Coverage;Format=cobertura" \
+            -- RunConfiguration.CollectSourceInformation=true \
+            --logger GitHubActions
+
+      - name: 🤝 Merge Coverage Reports
+        if: ${{ always() }}
+        run: |
+          echo '::group::ReportGenerator'
+          reportgenerator \
+            -reports:"${TEST_RESULTS}/**/coverage.cobertura.xml" \
+            -targetdir:"${COVERAGE_REPORT}" \
+            -reporttypes:"Cobertura;HtmlInline_AzurePipelines_Dark;MarkdownSummaryGithub;TextSummary"
+          echo '::endgroup::'
+          
+          {
+            echo '### 🧪 Coverage artifacts'
+            echo "* Cobertura: \`${COVERAGE_REPORT}/Cobertura.xml\`"
+            echo "* HTML: \`${COVERAGE_REPORT}/index.html\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          #######################################################
+
+      - name: 📤 Upload Coverage Artifacts
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: ${{ env.COVERAGE_REPORT }}-${{ github.sha }}
+          path: ${{ env.COVERAGE_REPORT }}/**
+          retention-days: 14
+
+      - name: 📊 Append Coverage to Summary
+        if: ${{ always() }}
+        run: |
+          md="${COVERAGE_REPORT}/SummaryGithub.md"
+          txt="${COVERAGE_REPORT}/Summary.txt"
           
           echo '' >> "$GITHUB_STEP_SUMMARY"
           if [ -f "$md" ]; then
             sed -E \
               -e 's/^# Summary$/## 📝 Code Coverage/' \
               -e 's/^## Coverage/### Coverage details/' \
-              "$md" >> $GITHUB_STEP_SUMMARY
+              "$md" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo '### 📝 Code Coverage' >> $GITHUB_STEP_SUMMARY
-            echo '~~Coverage markdown summary not found.~~' >> $GITHUB_STEP_SUMMARY
+            {
+              echo '### 📝 Code Coverage'
+              echo 'Warn: Coverage markdown summary not found'
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
           
           if [ -f "$txt" ]; then
-            echo '' >> $GITHUB_STEP_SUMMARY
-            echo '#### Quick totals' >> $GITHUB_STEP_SUMMARY
-            grep -E '^(Line|Branch|Method) coverage' "$txt" | sed 's/^/> /' >> $GITHUB_STEP_SUMMARY
+            {
+              echo ''
+              echo '#### Quick totals'
+              grep -E '^(Line|Branch|Method) coverage' "$txt" | sed 's/^/> /'
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
+          #######################################################
 
-      - name: 📊 Add Packaged Artifacts to Summary
-        if: always()
+
+      ### Packing
+      - name: 📦 Pack Packages
         run: |
-          echo '' >> $GITHUB_STEP_SUMMARY
-          echo '### 📦 Packaged Artifacts' >> $GITHUB_STEP_SUMMARY
-          packages=$(ls -1 artifacts/package/release/*.nupkg 2>/dev/null | sed 's/^/- `/' | sed 's/$/`/')
-          if [ -z "$packages" ]; then
-            echo 'No packages were created' >> $GITHUB_STEP_SUMMARY
-          else
-            echo "$packages" >> $GITHUB_STEP_SUMMARY
-          fi
+          dotnet pack \
+            -c Release \
+            --no-build \
+            --include-symbols \
+            --include-source
 
       - name: 📤 Upload Packages Artifacts
         uses: actions/upload-artifact@v4.6.2
         with:
           name: packages-${{ github.sha }}
-          path: artifacts/package/release/*
+          path: ${{ env.PACKAGE_RELEASE }}/*
           if-no-files-found: error
           retention-days: 90
 
-      - name: 📤 Upload Coverage Artifacts
-        uses: actions/upload-artifact@v4.6.2
-        with:
-          name: coverage-report-${{ github.sha }}
-          path: coverage-report/**
-          retention-days: 14
+      - name: 📊 Add Packaged Artifacts to Summary
+        if: ${{ always() }}
+        run: |
+          echo '### 📦 Packaged Artifacts' >> "$GITHUB_STEP_SUMMARY"
+          packages=$(ls -1 "${PACKAGE_RELEASE}"/*.nupkg 2>/dev/null | sed 's/^/- `/' | sed 's/$/`/')
+          if [ -z "$packages" ]; then
+            echo 'Warn: No packages were created' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "$packages" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          #######################################################

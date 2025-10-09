@@ -14,7 +14,7 @@ env:
 jobs:
   verify-tag:
     name: Verify Before Publish
-    timeout-minutes: 10
+    timeout-minutes: 5
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -55,9 +55,7 @@ jobs:
     needs: verify-tag
     if: ${{ needs.verify-tag.outputs.is_publishable == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    # This job does not interact with the GitHub API, so no permissions are needed:
+    timeout-minutes: 30
     permissions: { }
 
     steps:
@@ -78,15 +76,19 @@ jobs:
         run: |
           dotnet nuget push ${{ env.RELEASE_DIR }}/*.nupkg \
             --api-key ${{ secrets.NUGET_API_KEY }} \
-            --source https://api.nuget.org/v3/index.json \
+            --source ${{ vars.NUGET_SOURCE || 'https://api.nuget.org/v3/index.json' }} \
             --skip-duplicate
+        env:
+          DOTNET_NOLOGO: true
+          DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+          DOTNET_CLI_TELEMETRY_OPTOUT: 1
 
   create-release:
     name: Create Release
     needs: verify-tag
     if: ${{ needs.verify-tag.outputs.is_publishable == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     permissions:
       contents: write # to create a GitHub Release and upload assets
 
@@ -109,7 +111,9 @@ jobs:
 
       - name: 🖨️ Report Release
         run: |
-          echo '# New Release ${{ needs.verify-tag.outputs.version }}' >> $GITHUB_STEP_SUMMARY
-          echo '_ID: ${{ steps.create_release.outputs.id }}_' >> $GITHUB_STEP_SUMMARY
-          echo 'URL: ${{ steps.create_release.outputs.url }}' >> $GITHUB_STEP_SUMMARY
+          {
+            echo '## New Release ${{ needs.verify-tag.outputs.version }}'
+            echo '_ID: ${{ steps.create_release.outputs.id }}_'
+            echo 'URL: ${{ steps.create_release.outputs.url }}'
+          } >> "$GITHUB_STEP_SUMMARY"
         continue-on-error: true

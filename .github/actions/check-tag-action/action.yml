@@ -78,9 +78,11 @@ runs:
         fi
 
         # Save the results to the output of the step:
-        echo "is_publishable=$is_publishable" >> $GITHUB_OUTPUT
-        echo "is_prerelease=$is_prerelease" >> $GITHUB_OUTPUT
-        echo "version=$version" >> $GITHUB_OUTPUT
+        {
+          echo "is_publishable=$is_publishable"
+          echo "is_prerelease=$is_prerelease"
+          echo "version=$version"
+        } >> "$GITHUB_OUTPUT"
         #######################################################
       shell: bash
 
@@ -123,6 +125,6 @@ runs:
         fi
         
         # Save the results to the output of the step:
-        echo "is_latest=$is_latest" >> $GITHUB_OUTPUT 
+        echo "is_latest=$is_latest" >> "$GITHUB_OUTPUT" 
         #######################################################
       shell: bash

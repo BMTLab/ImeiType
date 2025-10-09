@@ -7,11 +7,11 @@ name: Main CI
 
 on:
   pull_request:
-    branches:
+    branches: &tracked_branches
       - main
       - release
       - dev
-    paths-ignore:
+    paths-ignore:  &ignore_paths
       - '**/*.md'
       - '**/*.txt'
       - '.gitignore'
@@ -23,22 +23,10 @@ on:
       - '.actrc'
 
   push:
-    branches:
-      - main
-      - release
-      - dev
+    branches: *tracked_branches
     tags:
       - "v*.*.*"
-    paths-ignore:
-      - '**/*.md'
-      - '**/*.txt'
-      - '.gitignore'
-      - '.gitattributes'
-      - '.github/dependabot.yml'
-      - '.github/CODEOWNERS'
-      - 'LICENSE'
-      - '.act/*'
-      - '.actrc'
+    paths-ignore: *ignore_paths
 
   workflow_dispatch:
 
@@ -55,12 +43,6 @@ concurrency:
 # Any job that needs more permissions must explicitly request them, overriding this block.
 permissions:
   contents: read
-
-env:
-  DOTNET_NOLOGO: true
-  DOTNET_CLI_TELEMETRY_OPTOUT: true
-  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
-  DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION: true
 
 jobs:
   build-packages:
@@ -86,7 +68,8 @@ jobs:
     needs: build-packages
     # If it is not local debugging by the 'nektos/act' tool,
     # and the job is skipped for Dependabot PRs because they don't have access to secrets:
-    if: ${{ (github.event.act == 'false' || github.event.act == '')
+    if: >-
+      ${{ (github.event.act == 'false' || github.event.act == '')
       && github.actor != 'dependabot[bot]' }}
     uses: ./.github/workflows/ci-coverage.yml
     permissions:
