@@ -46,14 +46,17 @@ runs:
         version_regex="${{ inputs.version_regex }}"
         allowed_prerelease_suffix_regex="${{ inputs.allowed_prerelease_suffix_regex }}"
 
+        echo '::group::Inputs'
         echo "Detected version: '$version'"
         echo "Using version regex: '$version_regex'"
         echo "Using allowed prerelease regex: '$allowed_prerelease_suffix_regex'"
+        echo '::endgroup::'
 
         # Initialize flags:
         is_publishable=false
         is_prerelease=false
 
+        echo '::group::Validate format & prerelease'
         if [[ $version =~ $version_regex ]]; then
             # If there is no pre-release group - the version is not pre-release, it is published:
             if [ -z "${BASH_REMATCH[2]}" ]; then
@@ -74,8 +77,10 @@ runs:
             fi
         else
             echo "Error: Incorrect version format: '$version'" >&2
+            echo '::endgroup::'
             exit 101
         fi
+        echo '::endgroup::'
 
         # Save the results to the output of the step:
         {
@@ -94,14 +99,19 @@ runs:
         version_regex="${{ inputs.version_regex }}"
 
         # Get full tag history (if there is a shallow clone left)
+        echo '::group::Fetch tags (ensure full history)'
         git fetch --tags --prune-tags --unshallow || true
-        
+        echo '::endgroup::'
+
+        echo '::group::Inputs'
         echo "New version: '$version'"
         echo "Using version regex: '$version_regex'"
-        
+        echo '::endgroup::'
+
         # Initialize flags:
         is_latest=false
         
+        echo '::group::Find existing version tags'
         # Get the list of existing tags matching the template, excluding the new tag:
         existing_tags=$(git tag --list | grep -E "$version_regex" | grep -v "^$version$" || true)
         
@@ -114,6 +124,7 @@ runs:
           highest_existing=$(echo "$existing_tags" | sort -V | tail -n 1)
           echo "Highest existing version: '$highest_existing'"
         
+          echo '::group::Compare new vs highest existing'
           # Determine which of the two versions (the highest existing and the new) is newer:
           new_highest=$( (echo "$highest_existing"; echo "$version") | sort -V | tail -n 1)
           if [ "$new_highest" == "$version" ]; then
@@ -122,7 +133,9 @@ runs:
             is_latest=false
             echo "Warn: New version $version is less than highest existing version $highest_existing" >&2
           fi
+          echo '::endgroup::'
         fi
+        echo '::endgroup::'
         
         # Save the results to the output of the step:
         echo "is_latest=$is_latest" >> "$GITHUB_OUTPUT" 

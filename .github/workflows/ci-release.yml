@@ -28,12 +28,19 @@ jobs:
     steps:
       - name: 🛡️ Check Permissions
         run: |
+          echo '::group::Context'
           echo "GitHub Actor: '${{ github.actor }}'"
           echo "Repository Owner: '${{ github.repository_owner }}'"
+          echo '::endgroup::'
+
+          echo '::group::Permission check'
           if [ '${{ github.actor }}' != '${{ github.repository_owner }}' ]; then
             echo 'Only the repository owner can publish' >&2
+            echo '::endgroup::'
             exit 103
           fi
+          echo 'OK: publisher permissions confirmed!'
+          echo '::endgroup::'
           #######################################################
 
       - name: ⚙ Checkout Check Tag Action

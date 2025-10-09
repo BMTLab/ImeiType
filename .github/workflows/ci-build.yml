@@ -129,12 +129,10 @@ jobs:
       - name: 🤝 Merge Coverage Reports
         if: ${{ always() }}
         run: |
-          echo '::group::ReportGenerator'
           reportgenerator \
             -reports:"${TEST_RESULTS}/**/coverage.cobertura.xml" \
             -targetdir:"${COVERAGE_REPORT}" \
             -reporttypes:"Cobertura;HtmlInline_AzurePipelines_Dark;MarkdownSummaryGithub;TextSummary"
-          echo '::endgroup::'
           
           {
             echo '### 🧪 Coverage artifacts'

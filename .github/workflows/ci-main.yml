@@ -25,7 +25,7 @@ on:
   push:
     branches: *tracked_branches
     tags:
-      - "v*.*.*"
+     - 'v*.*.*'
     paths-ignore: *ignore_paths
 
   workflow_dispatch:
