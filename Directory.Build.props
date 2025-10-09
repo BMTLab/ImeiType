@@ -73,6 +73,9 @@
         <DebugType>pdbonly</DebugType>
         <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
         <Optimize>true</Optimize>
+    </PropertyGroup>
+
+    <PropertyGroup Label="BuildConfig" Condition="'$(GITHUB_ACTIONS)'=='true'">
         <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
     </PropertyGroup>
 
