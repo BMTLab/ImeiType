@@ -140,6 +140,7 @@ jobs:
             echo
             echo '```text'
             cat "${DOTNET_ANALYZES}"/"${vulnerable_report}"
+            echo
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
         continue-on-error: true
@@ -185,11 +186,16 @@ jobs:
 
           {
             echo '### 🧾 .NET Format Report'
+            echo
             if [ -f "$format_report" ]; then
-              echo
-              echo '```json'
-              cat "$format_report"
-              echo '```'
+              if [ "$format_report" == '[]' ]; then
+                echo '✅ No formatting issues were found'
+              else
+                echo '```json'
+                cat "$format_report"
+                echo
+                echo '```'
+              fi
             else
               echo 'Warn: No JSON report found'
             fi
