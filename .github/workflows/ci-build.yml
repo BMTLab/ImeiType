@@ -120,11 +120,12 @@ jobs:
           || dotnet tool install -g dotnet-reportgenerator-globaltool
 
       - name: 🧪 Test + Coverage (Cobertura via XPlat)
+        # Note: the space after the last double dash (--) is intentional
         run: >-
           dotnet test -c Release --no-build -v minimal
           --results-directory "./${TEST_RESULTS}"
-          --collect:"XPlat Code Coverage;Format=cobertura"
-          --logger GitHubActions
+          --collect:'XPlat Code Coverage;Format=cobertura'
+          --logger 'GitHubActions;annotations.titleFormat=@test [@framework];summary.includePassedTests=true'
           --
           RunConfiguration.CollectSourceInformation=true
           
@@ -135,7 +136,7 @@ jobs:
           reportgenerator \
             -reports:"${TEST_RESULTS}/**/coverage.cobertura.xml" \
             -targetdir:"${COVERAGE_REPORT}" \
-            -reporttypes:"Cobertura;HtmlInline_AzurePipelines_Dark;MarkdownSummaryGithub;TextSummary"
+            -reporttypes:'Cobertura;HtmlInline_AzurePipelines_Dark;MarkdownSummaryGithub;TextSummary'
           
           {
             echo '### 🧪 Coverage artifacts'

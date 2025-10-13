@@ -178,7 +178,7 @@ jobs:
               format_report_file="$alt_json"
               echo "Info: Falling back to '$format_report_file'"
             else
-              echo "Warn: No JSON report found in '$DOTNET_ANALYZES'" >&2
+              echo "Warn: No JSON report found in \`$DOTNET_ANALYZES\`" >&2
             fi
           fi
           echo '::endgroup::'
