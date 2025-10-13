@@ -1,0 +1,86 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "config", "config", "{1AD244E0-696C-4A2A-31B1-1832C4FA60E4}"
+	ProjectSection(SolutionItems) = preProject
+		global.json = global.json
+		Directory.Build.props = Directory.Build.props
+		Directory.Packages.props = Directory.Packages.props
+		Directory.Build.targets = Directory.Build.targets
+		GitVersion.yml = GitVersion.yml
+		.config\dotnet-tools.json = .config\dotnet-tools.json
+		.gitattributes = .gitattributes
+		.gitignore = .gitignore
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{C4AD9936-F0DF-1090-6077-3D4A6324E662}"
+	ProjectSection(SolutionItems) = preProject
+		scripts\clean.ps1 = scripts\clean.ps1
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
+	ProjectSection(SolutionItems) = preProject
+		src\Directory.Build.props = src\Directory.Build.props
+		src\Directory.Build.targets = src\Directory.Build.targets
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ImeiType", "ImeiType", "{272A3402-D2CC-2864-129A-67A1F17E1189}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImeiType.Samples", "src\Core\ImeiType.Samples\ImeiType.Samples.csproj", "{CD636B25-3C24-233F-7435-055BB0ED6281}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImeiType.Tests.Benchmarks", "src\Core\ImeiType.Tests.Benchmarks\ImeiType.Tests.Benchmarks.csproj", "{C6583541-0BA6-613A-AED8-3E3E281A1AF9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImeiType.Tests.Unit", "src\Core\ImeiType.Tests.Unit\ImeiType.Tests.Unit.csproj", "{80B78454-EDD9-B7CE-7516-E58C420463EE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImeiType", "src\Core\ImeiType\ImeiType.csproj", "{B521EA7B-AE72-9AED-02D4-EF069F7478B9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SystemTextJson", "SystemTextJson", "{E2FD7A78-EDB6-AC3D-02F6-5D0BA800D5A9}"
+	ProjectSection(SolutionItems) = preProject
+		src\SystemTextJson\Directory.Build.props = src\SystemTextJson\Directory.Build.props
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImeiType.SystemTextJson.Tests.Unit", "src\SystemTextJson\ImeiType.SystemTextJson.Tests.Unit\ImeiType.SystemTextJson.Tests.Unit.csproj", "{E5DB6E53-2F6A-5429-6720-DFCC02244EEC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImeiType.SystemTextJson", "src\SystemTextJson\ImeiType.SystemTextJson\ImeiType.SystemTextJson.csproj", "{F55FA71B-CCD0-C89E-2B90-36699C271A0F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CD636B25-3C24-233F-7435-055BB0ED6281}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CD636B25-3C24-233F-7435-055BB0ED6281}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CD636B25-3C24-233F-7435-055BB0ED6281}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CD636B25-3C24-233F-7435-055BB0ED6281}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C6583541-0BA6-613A-AED8-3E3E281A1AF9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C6583541-0BA6-613A-AED8-3E3E281A1AF9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C6583541-0BA6-613A-AED8-3E3E281A1AF9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C6583541-0BA6-613A-AED8-3E3E281A1AF9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{80B78454-EDD9-B7CE-7516-E58C420463EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{80B78454-EDD9-B7CE-7516-E58C420463EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{80B78454-EDD9-B7CE-7516-E58C420463EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{80B78454-EDD9-B7CE-7516-E58C420463EE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B521EA7B-AE72-9AED-02D4-EF069F7478B9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B521EA7B-AE72-9AED-02D4-EF069F7478B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B521EA7B-AE72-9AED-02D4-EF069F7478B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B521EA7B-AE72-9AED-02D4-EF069F7478B9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5DB6E53-2F6A-5429-6720-DFCC02244EEC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5DB6E53-2F6A-5429-6720-DFCC02244EEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5DB6E53-2F6A-5429-6720-DFCC02244EEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5DB6E53-2F6A-5429-6720-DFCC02244EEC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F55FA71B-CCD0-C89E-2B90-36699C271A0F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F55FA71B-CCD0-C89E-2B90-36699C271A0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F55FA71B-CCD0-C89E-2B90-36699C271A0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F55FA71B-CCD0-C89E-2B90-36699C271A0F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{272A3402-D2CC-2864-129A-67A1F17E1189} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{E2FD7A78-EDB6-AC3D-02F6-5D0BA800D5A9} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{CD636B25-3C24-233F-7435-055BB0ED6281} = {272A3402-D2CC-2864-129A-67A1F17E1189}
+		{C6583541-0BA6-613A-AED8-3E3E281A1AF9} = {272A3402-D2CC-2864-129A-67A1F17E1189}
+		{80B78454-EDD9-B7CE-7516-E58C420463EE} = {272A3402-D2CC-2864-129A-67A1F17E1189}
+		{B521EA7B-AE72-9AED-02D4-EF069F7478B9} = {272A3402-D2CC-2864-129A-67A1F17E1189}
+		{E5DB6E53-2F6A-5429-6720-DFCC02244EEC} = {E2FD7A78-EDB6-AC3D-02F6-5D0BA800D5A9}
+		{F55FA71B-CCD0-C89E-2B90-36699C271A0F} = {E2FD7A78-EDB6-AC3D-02F6-5D0BA800D5A9}
+	EndGlobalSection
+EndGlobal
