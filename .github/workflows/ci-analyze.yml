@@ -108,7 +108,6 @@ jobs:
           {
             dotnet list package \
               --outdated \
-              --include-transitive \
               | tee "${DOTNET_ANALYZES}"/"${outdated_report}"
           }
           echo '::endgroup::'
