@@ -46,7 +46,7 @@ jobs:
         run: git checkout HEAD^2
 
       - name: 🫙 Initialize CodeQL
-        uses: github/codeql-action/init@v3.30.6
+        uses: github/codeql-action/init@v4.30.8
         with:
           languages: csharp
           # This mode skips the auto-build step, significantly speeding up the analysis.
@@ -54,7 +54,8 @@ jobs:
           build-mode: none
 
       - name: 🩻 Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3.30.6
+        uses: github/codeql-action/analyze@v4.30.8
+
 
   dotnet-analyzes:
     name: .NET Analyzes
