@@ -115,7 +115,6 @@ jobs:
 
           {
             echo '### 📦 NuGet: Outdated packages'
-            echo
             echo '```text'
             cat "${DOTNET_ANALYZES}"/"${outdated_report}"
             echo '```'
@@ -138,7 +137,6 @@ jobs:
 
           {
             echo '### 🛡️ NuGet: Vulnerable packages'
-            echo
             echo '```text'
             cat "${DOTNET_ANALYZES}"/"${vulnerable_report_file}"
             echo
@@ -180,14 +178,13 @@ jobs:
               format_report_file="$alt_json"
               echo "Info: Falling back to '$format_report_file'"
             else
-              echo "Warn: No JSON report found in '${DOTNET_ANALYZES}'" >&2
+              echo "Warn: No JSON report found in '$DOTNET_ANALYZES'" >&2
             fi
           fi
           echo '::endgroup::'
 
           {
             echo '### 🧾 .NET Format Report'
-            echo
             if [ -f "$format_report_file" ]; then
               format_report="$(cat "$format_report_file")"
               if [ "$format_report" == '[]' ]; then
@@ -199,7 +196,7 @@ jobs:
                 echo '```'
               fi
             else
-              echo 'Warn: No JSON report found'
+              echo '⚠️ No JSON report found'
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 

@@ -93,8 +93,10 @@ jobs:
 
       ### Building
       - name: 🛠️ Build
-        run: |
-          dotnet build -c Release --no-restore
+        run: >-
+          dotnet build
+          -c Release
+          --no-restore
 
       - name: 🔧 Rebuild project if failed
         # This step should not be run,
@@ -113,18 +115,19 @@ jobs:
 
       ### Testing
       - name: 🔧 Install ReportGenerator
-        run: |
-          # Update or install tool
-          dotnet tool update -g dotnet-reportgenerator-globaltool \
-            || dotnet tool install -g dotnet-reportgenerator-globaltool
+        run: >-
+          dotnet tool update -g dotnet-reportgenerator-globaltool
+          || dotnet tool install -g dotnet-reportgenerator-globaltool
 
       - name: 🧪 Test + Coverage (Cobertura via XPlat)
-        run: |
-          dotnet test -c Release --no-build  -v minimal \
-            --results-directory "./${TEST_RESULTS}" \
-            --collect:"XPlat Code Coverage;Format=cobertura" \
-            -- RunConfiguration.CollectSourceInformation=true \
-            --logger GitHubActions
+        run: >-
+          dotnet test -c Release --no-build -v minimal
+          --results-directory "./${TEST_RESULTS}"
+          --collect:"XPlat Code Coverage;Format=cobertura"
+          --logger GitHubActions
+          --
+          RunConfiguration.CollectSourceInformation=true
+          
 
       - name: 🤝 Merge Coverage Reports
         if: ${{ always() }}
@@ -154,37 +157,39 @@ jobs:
           md="${COVERAGE_REPORT}/SummaryGithub.md"
           txt="${COVERAGE_REPORT}/Summary.txt"
           
-          echo '' >> "$GITHUB_STEP_SUMMARY"
-          if [ -f "$md" ]; then
-            sed -E \
-              -e 's/^# Summary$/## 📝 Code Coverage/' \
-              -e 's/^## Coverage/### Coverage details/' \
-              "$md" >> "$GITHUB_STEP_SUMMARY"
-          else
-            {
-              echo '### 📝 Code Coverage'
-              echo 'Warn: Coverage markdown summary not found'
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
-          
-          if [ -f "$txt" ]; then
-            {
-              echo ''
-              echo '#### Quick totals'
-              grep -E '^(Line|Branch|Method) coverage' "$txt" | sed 's/^/> /'
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
+          {
+            echo
+            if [ -f "$md" ]; then
+              sed -E \
+                -e 's/^# Summary$/## 📝 Code Coverage/' \
+                -e 's/^## Coverage/### Coverage details/' \
+                "$md"
+            else
+              {
+                echo '### 📝 Code Coverage'
+                echo '⚠️ Coverage markdown summary not found'
+              }
+            fi
+            
+            if [ -f "$txt" ]; then
+              {
+                echo
+                echo '#### Quick totals'
+                grep -E '^(Line|Branch|Method) coverage' "$txt" | sed 's/^/> /'
+              }
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
           #######################################################
 
 
       ### Packing
       - name: 📦 Pack Packages
-        run: |
-          dotnet pack \
-            -c Release \
-            --no-build \
-            --include-symbols \
-            --include-source
+        run: >-
+          dotnet pack
+          -c Release
+          --no-build
+          --include-symbols
+          --include-source
 
       - name: 📤 Upload Packages Artifacts
         uses: actions/upload-artifact@v4.6.2
@@ -197,11 +202,13 @@ jobs:
       - name: 📊 Add Packaged Artifacts to Summary
         if: ${{ always() }}
         run: |
-          echo '### 📦 Packaged Artifacts' >> "$GITHUB_STEP_SUMMARY"
-          packages=$(ls -1 "${PACKAGE_RELEASE}"/*.nupkg 2>/dev/null | sed 's/^/- `/' | sed 's/$/`/')
-          if [ -z "$packages" ]; then
-            echo 'Warn: No packages were created' >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "$packages" >> "$GITHUB_STEP_SUMMARY"
-          fi
+          {
+            echo '### 📦 Packaged Artifacts'
+            packages="$(ls -1 "${PACKAGE_RELEASE}"/*.nupkg 2>/dev/null | sed 's/^/- `/' | sed 's/$/`/')"
+            if [ -z "$packages" ]; then
+              echo '⚠️ No packages were created'
+            else
+              echo "$packages"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
           #######################################################

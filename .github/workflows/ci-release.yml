@@ -39,7 +39,7 @@ jobs:
             echo '::endgroup::'
             exit 103
           fi
-          echo 'OK: publisher permissions confirmed!'
+          echo '✅ Publisher permissions confirmed!' >> "$GITHUB_STEP_SUMMARY"
           echo '::endgroup::'
           #######################################################
 
@@ -80,11 +80,11 @@ jobs:
           path: ${{ env.RELEASE_DIR }}
 
       - name: 📣 Publish to NuGet
-        run: |
-          dotnet nuget push ${{ env.RELEASE_DIR }}/*.nupkg \
-            --api-key ${{ secrets.NUGET_API_KEY }} \
-            --source ${{ vars.NUGET_SOURCE || 'https://api.nuget.org/v3/index.json' }} \
-            --skip-duplicate
+        run: >-
+          dotnet nuget push ${{ env.RELEASE_DIR }}/*.nupkg
+          --api-key ${{ secrets.NUGET_API_KEY }}
+          --source ${{ vars.NUGET_SOURCE || 'https://api.nuget.org/v3/index.json' }}
+          --skip-duplicate
         env:
           DOTNET_NOLOGO: true
           DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
