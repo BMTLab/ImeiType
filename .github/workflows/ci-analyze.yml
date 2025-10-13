@@ -125,14 +125,14 @@ jobs:
       - name: 🛡️ Detect Vulnerable NuGet Packages
         run: |
           set -o pipefail
-          vulnerable_report='vulnerable-report.txt'
+          vulnerable_report_file='vulnerable-report.txt'
           
           echo '::group::List packages'
           {
             dotnet list package \
               --vulnerable \
               --include-transitive \
-              | tee "${DOTNET_ANALYZES}"/"${vulnerable_report}"
+              | tee "${DOTNET_ANALYZES}"/"${vulnerable_report_file}"
           }
           echo '::endgroup::'
 
@@ -140,7 +140,7 @@ jobs:
             echo '### 🛡️ NuGet: Vulnerable packages'
             echo
             echo '```text'
-            cat "${DOTNET_ANALYZES}"/"${vulnerable_report}"
+            cat "${DOTNET_ANALYZES}"/"${vulnerable_report_file}"
             echo
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
@@ -149,7 +149,7 @@ jobs:
       - name: 🩻 Detect .NET Format Issues
         run: |
           set -o pipefail
-          format_report_log='format-report.log'
+          format_report_log_file='format-report.log'
           
           echo '::group::Perform dotnet-format'
           {
@@ -158,27 +158,27 @@ jobs:
               --verify-no-changes \
               --include src \
               --verbosity diagnostic \
-              --report "$DOTNET_ANALYZES" | tee "${DOTNET_ANALYZES}"/"${format_report_log}"
+              --report "$DOTNET_ANALYZES" | tee "${DOTNET_ANALYZES}"/"${format_report_log_file}"
           }
           echo '::endgroup::'
           
           echo '::group::Summary tail'
-          tail -n 20 "${DOTNET_ANALYZES}"/"${format_report_log}" || true
+          tail -n 20 "${DOTNET_ANALYZES}"/"${format_report_log_file}" || true
           echo '::endgroup::'
         continue-on-error: true
 
       - name: 🧾 Append .NET Format Report to Summary
         if: ${{ always() }}
         run: |
-          format_report="${DOTNET_ANALYZES}/format-report.json"
+          format_report_file="${DOTNET_ANALYZES}/format-report.json"
 
           # Fallback: if the standard report file is renamed in the feature version, take any .json in the folder
           echo '::group::Look for dotnet-format JSON report '
-          if [ ! -f "$format_report" ]; then
+          if [ ! -f "$format_report_file" ]; then
             alt_json=$(ls -1 "${DOTNET_ANALYZES}"/*.json 2>/dev/null | head -n1 || true)
             if [ -n "$alt_json" ]; then
-              format_report="$alt_json"
-              echo "Info: Falling back to '$format_report'"
+              format_report_file="$alt_json"
+              echo "Info: Falling back to '$format_report_file'"
             else
               echo "Warn: No JSON report found in '${DOTNET_ANALYZES}'" >&2
             fi
@@ -188,12 +188,13 @@ jobs:
           {
             echo '### 🧾 .NET Format Report'
             echo
-            if [ -f "$format_report" ]; then
+            if [ -f "$format_report_file" ]; then
+              format_report="$(cat "$format_report_file")"
               if [ "$format_report" == '[]' ]; then
                 echo '✅ No formatting issues were found'
               else
                 echo '```json'
-                cat "$format_report"
+                echo "$format_report"
                 echo
                 echo '```'
               fi
