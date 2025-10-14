@@ -120,44 +120,40 @@ jobs:
           || dotnet tool install -g dotnet-reportgenerator-globaltool
 
       - name: 🧪 Test + Coverage (Cobertura via XPlat)
-        # Note: the space after the last double dash (--) is intentional
-        run: >-
-          dotnet test -c Release --no-build -v minimal
-          --results-directory "./${TEST_RESULTS}"
-          --collect:'XPlat Code Coverage;Format=cobertura'
-          --logger 'GitHubActions;annotations.titleFormat=@test [@framework];summary.includePassedTests=true'
-          --
-          RunConfiguration.CollectSourceInformation=true
+        run: |
+          echo '#### 🧪 Test Results' >> "$GITHUB_STEP_SUMMARY"
+          
+          # Note: the space after the last double dash (--) is intentional
+          dotnet test -c Release --no-build -v minimal \
+            --results-directory "./${TEST_RESULTS}" \
+            --collect:'XPlat Code Coverage;Format=cobertura' \
+            --logger 'GitHubActions;annotations.titleFormat=@test [@framework];summary.includePassedTests=true' \
+            -- \
+            RunConfiguration.CollectSourceInformation=true
+          #######################################################
           
 
       - name: 🤝 Merge Coverage Reports
         if: ${{ always() }}
-        run: |
-          reportgenerator \
-            -reports:"${TEST_RESULTS}/**/coverage.cobertura.xml" \
-            -targetdir:"${COVERAGE_REPORT}" \
-            -reporttypes:'Cobertura;HtmlInline_AzurePipelines_Dark;MarkdownSummaryGithub;TextSummary'
-          
-          {
-            echo '### 🧪 Coverage artifacts'
-            echo "* Cobertura: \`${COVERAGE_REPORT}/Cobertura.xml\`"
-            echo "* HTML: \`${COVERAGE_REPORT}/index.html\`"
-          } >> "$GITHUB_STEP_SUMMARY"
-          #######################################################
+        run: >-
+          reportgenerator
+          -reports:"${TEST_RESULTS}/**/coverage.cobertura.xml"
+          -targetdir:"${COVERAGE_REPORT}"
+          -reporttypes:'Cobertura;HtmlInline_AzurePipelines_Dark;MarkdownSummaryGithub;TextSummary'
 
       - name: 📤 Upload Coverage Artifacts
         uses: actions/upload-artifact@v4.6.2
         with:
           name: ${{ env.COVERAGE_REPORT }}-${{ github.sha }}
           path: ${{ env.COVERAGE_REPORT }}/**
-          retention-days: 14
+          retention-days: 30
 
       - name: 📊 Append Coverage to Summary
         if: ${{ always() }}
         run: |
           md="${COVERAGE_REPORT}/SummaryGithub.md"
           txt="${COVERAGE_REPORT}/Summary.txt"
-          
+
           {
             echo
             if [ -f "$md" ]; then
@@ -171,14 +167,12 @@ jobs:
                 echo '⚠️ Coverage markdown summary not found'
               }
             fi
-            
-            if [ -f "$txt" ]; then
-              {
-                echo
-                echo '#### Quick totals'
-                grep -E '^(Line|Branch|Method) coverage' "$txt" | sed 's/^/> /'
-              }
-            fi
+          
+            {
+              echo '#### 🧪 Coverage artifacts'
+              echo "* Cobertura: \`${COVERAGE_REPORT}/Cobertura.xml\`"
+              echo "* HTML: \`${COVERAGE_REPORT}/index.html\`"
+            }
           } >> "$GITHUB_STEP_SUMMARY"
           #######################################################
 
@@ -198,7 +192,7 @@ jobs:
           name: packages-${{ github.sha }}
           path: ${{ env.PACKAGE_RELEASE }}/*
           if-no-files-found: error
-          retention-days: 90
+          retention-days: 30
 
       - name: 📊 Add Packaged Artifacts to Summary
         if: ${{ always() }}
