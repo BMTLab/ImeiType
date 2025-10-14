@@ -1,7 +1,12 @@
 # .github/workflows/ci-main.yml
 
-# This workflow is the entry-point workflow
-# that orchestrates our project's CI by delegating tasks to dedicated sub-workflows.
+# Orchestrates the repository CI. Routes work to reusable workflows:
+# - ci-build.yml (build/test/pack) on PRs and pushes to tracked branches.
+# - ci-analyze.yml (CodeQL / .NET analyzes) as a separate job.
+# - ci-upload-coverage.yml (Codecov upload) after build artifacts are produced.
+# - ci-release.yml (NuGet + GitHub Release) on version tags (v*.*.*).
+# Uses strict default permissions and per-ref concurrency to cancel superseded runs.
+# Secrets passed through when needed: CODECOV_TOKEN, NUGET_API_KEY.
 
 name: Main CI
 
@@ -54,8 +59,6 @@ jobs:
 
   analyze-packages:
     name: 🔬 Code Analyze
-    # If it is not local debugging by the 'nektos/act' tool:
-    if: ${{ (github.event.act == 'false' || github.event.act == '') }}
     uses: ./.github/workflows/ci-analyze.yml
     # The called workflow runs CodeQL, which requires 'security-events: write'
     # to upload its findings to GitHub Security:
@@ -66,12 +69,9 @@ jobs:
   upload-coverage:
     name: 🧾 Code Coverage
     needs: build-packages
-    # If it is not local debugging by the 'nektos/act' tool,
-    # and the job is skipped for Dependabot PRs because they don't have access to secrets:
-    if: >-
-      ${{ (github.event.act == 'false' || github.event.act == '')
-      && github.actor != 'dependabot[bot]' }}
-    uses: ./.github/workflows/ci-coverage.yml
+    # The job is skipped for Dependabot PRs because they don't have access to secrets:
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    uses: ./.github/workflows/ci-upload-coverage.yml
     permissions:
       contents: read       # to read commit data
       checks: write        # to post status checks
@@ -84,10 +84,9 @@ jobs:
     needs:
       - build-packages
       - analyze-packages
-    # If it is not local debugging by the 'nektos/act' tool,
-    # and a version tag is assigned:
+    # If a version tag is assigned:
     if: >-
-      ${{ (github.event.act == 'false' || github.event.act == '')
+      ${{ github.actor != 'dependabot[bot]'
       && startsWith(github.ref, 'refs/tags/v')
       && github.event_name == 'push'
       && (github.ref_type == 'tag' || github.ref_type == '') }}

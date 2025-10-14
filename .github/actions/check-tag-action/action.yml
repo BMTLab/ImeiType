@@ -1,10 +1,11 @@
 # .github/actions/check-tag-action/action.yml
+
 name: Check Tag Action
 description: >-
   Validates the tag version format and checks version ordering.
   Outputs:
     - version: the validated version (same as input);
-    - is_prerelease: 'true' if the version includes a prerelease part:
+    - is_prerelease: 'true' if the version includes a prerelease part;
     - is_publishable: 'true' if the version format is correct and (if prerelease) allowed for publication;
     - is_latest: 'true' if the version is the highest among existing version tags.
 
@@ -15,9 +16,10 @@ inputs:
   version_regex:
     description: 'Regular expression to check the version format and filter existing tags'
     required: false
+    # Format: vMAJOR.MINOR.PATCH or vMAJOR.MINOR.PATCH-PRERELEASE
     default: '^v[0-9]+\.[0-9]+\.[0-9]+(-([0-9A-Za-z]+))?$'
   allowed_prerelease_suffix_regex:
-    description: 'Regular expression for acceptable prerelease values'
+    description: 'Regular expression for acceptable prerelease values (e.g. "^(alpha|beta|rc)$")'
     required: true
 
 outputs:
@@ -40,104 +42,265 @@ runs:
   steps:
     - name: Validate Version Tag Format
       id: validate_tag_format
+      shell: bash
+      env:
+        ERR_INVALID_FORMAT: '101'
       run: |
-        # Receive input data:
-        version="${{ inputs.version }}"
-        version_regex="${{ inputs.version_regex }}"
-        allowed_prerelease_suffix_regex="${{ inputs.allowed_prerelease_suffix_regex }}"
+        set -o errexit -o errtrace -o nounset -o pipefail
+
+        # Inputs from the caller:
+        version='${{ inputs.version }}'
+        version_regex='${{ inputs.version_regex }}'
+        allowed_prerelease_suffix_regex='${{ inputs.allowed_prerelease_suffix_regex }}'
 
         echo '::group::Inputs'
-        echo "Detected version: '$version'"
-        echo "Using version regex: '$version_regex'"
-        echo "Using allowed prerelease regex: '$allowed_prerelease_suffix_regex'"
+        echo "Detected version: '${version}'"
+        echo "Using version regex: '${version_regex}'"
+        echo "Allowed prerelease regex: '${allowed_prerelease_suffix_regex}'"
         echo '::endgroup::'
 
-        # Initialize flags:
-        is_publishable=false
-        is_prerelease=false
+        #######################################
+        # Validates the version string against a regex and evaluates prerelease rules.
+        #
+        # Notes:
+        #   - With the default regex, capturing group #2 is the prerelease token (no leading dash).
+        #
+        # Arguments (read-only):
+        #   1: version                               - Tag version to validate (e.g., v1.2.3, v1.2.3-rc).
+        #   2: version_regex                         - Regex to validate format (and to provide capturing groups).
+        #   3: allowed_prerelease_suffix_regex       - Regex for allowed prerelease labels (e.g., ^(alpha|beta|rc)$).
+        # Outputs (by reference, via nameref):
+        #   4: _is_prerelease (bool)                 - true if version has a prerelease token.
+        #   5: _is_publishable (bool)                - true if format is valid and prerelease is allowed (if present).
+        # Returns:
+        #   0                     - If format OK (and prerelease allowed when present).
+        #   $ERR_INVALID_FORMAT   - If format does not match the regex.
+        #######################################
+        function validate_version_format_and_prerelease() {
+          local -r version="$1"
+          local -r version_regex="$2"
+          local -r allowed_prerelease_suffix_regex="$3"
+          local -n _is_prerelease="$4"
+          local -n _is_publishable="$5"
 
-        echo '::group::Validate format & prerelease'
-        if [[ $version =~ $version_regex ]]; then
-            # If there is no pre-release group - the version is not pre-release, it is published:
-            if [ -z "${BASH_REMATCH[2]}" ]; then
-                echo 'No prerelease part detected. Setting is_publishable=true'
-                is_publishable=true
+          _is_prerelease=false
+          _is_publishable=false
+
+          echo '::group::Validate format & prerelease'
+          if [[ "$version" =~ $version_regex ]]; then
+            # If the regex defines a prerelease capturing group (default: group #2), use it:
+            if [[ -z "${BASH_REMATCH[2]:-}" ]]; then
+              echo "::notice title=Format OK::'$version' matches regex and has no prerelease"
+              _is_publishable=true
             else
-                is_prerelease=true
-                prerelease="${BASH_REMATCH[2]}"
-                echo "Detected prerelease part: '$prerelease'"
-        
-                if [[ "$prerelease" =~ $allowed_prerelease_suffix_regex ]]; then
-                    echo "Prerelease '$prerelease' is allowed. Setting is_publishable=true"
-                    is_publishable=true
-                else
-                    echo "Warn: Prerelease '$prerelease' is NOT allowed. Setting is_publishable=false" >&2
-                    is_publishable=false
-                fi
-            fi
-        else
-            echo "Error: Incorrect version format: '$version'" >&2
-            echo '::endgroup::'
-            exit 101
-        fi
-        echo '::endgroup::'
+              _is_prerelease=true
+              local -r prerelease_token="${BASH_REMATCH[2]}"
+              echo "::notice title=Prerelease detected::'${prerelease_token}'"
 
-        # Save the results to the output of the step:
+              if [[ "$prerelease_token" =~ $allowed_prerelease_suffix_regex ]]; then
+                echo "::notice title=Prerelease allowed::'${prerelease_token}' matches '${allowed_prerelease_suffix_regex}'"
+                _is_publishable=true
+              else
+                echo "::warning title=Prerelease not allowed::'${prerelease_token}' does not match '${allowed_prerelease_suffix_regex}'"
+              fi
+            fi
+          else
+            echo "::error title=Invalid version format::'${version}' does not match '${version_regex}'"
+            echo '::endgroup::'
+            return "$ERR_INVALID_FORMAT"
+          fi
+          echo '::endgroup::'
+          return 0
+        }
+
+        is_prerelease=''
+        is_publishable=''
+        if ! validate_version_format_and_prerelease \
+              "$version" "$version_regex" "$allowed_prerelease_suffix_regex" \
+              is_prerelease is_publishable; then
+          exit "$ERR_INVALID_FORMAT"
+        fi
+
+        # Export step outputs for the action:
         {
-          echo "is_publishable=$is_publishable"
-          echo "is_prerelease=$is_prerelease"
-          echo "version=$version"
+          echo "is_publishable=${is_publishable}"
+          echo "is_prerelease=${is_prerelease}"
+          echo "version=${version}"
         } >> "$GITHUB_OUTPUT"
         #######################################################
-      shell: bash
 
     - name: Validate Correct Version Order
       id: check_tag_ordering
+      shell: bash
       run: |
-        # Receive input data:
-        version="${{ inputs.version }}"
-        version_regex="${{ inputs.version_regex }}"
+        set -o errexit -o errtrace -o nounset -o pipefail
 
-        # Get full tag history (if there is a shallow clone left)
-        echo '::group::Fetch tags (ensure full history)'
-        git fetch --tags --prune-tags --unshallow || true
-        echo '::endgroup::'
+        # Inputs from the caller:
+        version='${{ inputs.version }}'
+        version_regex='${{ inputs.version_regex }}'
+
+        #######################################
+        # Ensures `git tag` reflects remote tags.
+        #
+        # Behavior:
+        #   - Detects shallow clones and adds --unshallow when necessary.
+        #   - Tolerates fetch failures (continues with local refs, emits a warning).
+        # Returns:
+        #   0 - Always (non-fatal warnings possible).
+        #######################################
+        function ensure_git_tags_available() {
+          echo '::group::Fetch tags (ensure full history)'
+
+          local shallow_state=''
+          if git rev-parse --is-shallow-repository >/dev/null 2>&1; then
+            shallow_state="$(git rev-parse --is-shallow-repository)"
+          fi
+
+          # Build fetch arguments; conditionally add --unshallow for shallow repos:
+          local -a fetch_args=(--tags --prune-tags)
+          if [[ "$shallow_state" == true ]]; then
+            fetch_args+=(--unshallow)
+          fi
+
+          # Use array expansion so each arg is passed cleanly (no word-splitting surprises):
+          if ! git fetch "${fetch_args[@]}"; then
+            echo '::warning title=Fetch tags::Failed to refresh tags; continuing with existing refs'
+          fi
+
+          echo '::endgroup::'
+        }
+
+        #######################################
+        # Loads tags that look like versions into an array, excluding the current one.
+        #
+        # Arguments (read-only):
+        #   1: version_regex         - Regex to filter version-like tags.
+        #   2: excluded_exact_tag    - Tag to exclude from the list (exact match).
+        # Outputs (by reference, via nameref):
+        #   3: _tags (array)         - Filled with matching tag names.
+        # Returns:
+        #   0 - Always.
+        #######################################
+        function load_matching_version_tags() {
+          local -r version_regex="$1"
+          local -r excluded_exact_tag="$2"
+          local -n _tags="$3"
+
+          # grep -E applies the regex filter; grep -Fxv removes the exact match (excluded tag):
+          mapfile -t _tags < <(
+            git tag --list \
+            | grep -E -- "$version_regex" \
+            | grep -Fxv -- "$excluded_exact_tag" \
+            || true
+          )
+        }
+
+        #######################################
+        # Compares two semver-like strings using `sort -V`.
+        #
+        # Notes:
+        #   - This is "semver-like": `sort -V` is version-aware but not a strict semver parser.
+        #   - Works well for tags like v1.2.3 and v1.2.3-rc; pre-release sorts before the release.
+        #
+        # Arguments (read-only):
+        #   1: version_a
+        #   2: version_b
+        # Outputs (by reference, via nameref):
+        #   3: _cmp (int) - -1 if a<b, 0 if a==b, 1 if a>b.
+        # Returns:
+        #   0 - Always.
+        #######################################
+        function compare_versions_semver_like() {
+          local -r version_a="$1"
+          local -r version_b="$2"
+          local -n _cmp="$3"
+
+          if [[ "$version_a" == "$version_b" ]]; then
+            _cmp=0
+            return 0
+          fi
+
+          # `sort -V` does version-aware ordering; head is the smaller, tail is the larger:
+          local first last
+          first="$(printf '%s\n' "$version_a" "$version_b" | sort -V | head -n1 || true)"
+          last="$( printf '%s\n' "$version_a" "$version_b" | sort -V | tail -n1 || true)"
+
+          if [[ "$last" == "$version_a" ]]; then
+            _cmp=1
+          else
+            _cmp=-1
+          fi
+        }
+
+        #######################################
+        # Selects the maximum (latest) version from a list using compare_versions_semver_like().
+        #
+        # Arguments:
+        #   1: _list (array, nameref)  - Candidate versions.
+        #   2: _max  (string, nameref) - Receives the maximum version or empty if list is empty.
+        # Returns:
+        #   0 - Always.
+        #######################################
+        function select_max_version() {
+          local -n _list="$1"
+          local -n _max="$2"
+
+          _max=''
+          for candidate in "${_list[@]}"; do
+            if [[ -z "$_max" ]]; then
+              _max="$candidate"
+            else
+              local -i cmp=0
+              compare_versions_semver_like "$candidate" "$_max" cmp
+              if [[ $cmp -gt 0 ]]; then
+                _max="$candidate"
+              fi
+            fi
+          done
+        }
+
+        ensure_git_tags_available
 
         echo '::group::Inputs'
-        echo "New version: '$version'"
-        echo "Using version regex: '$version_regex'"
+        echo "New version: '${version}'"
+        echo "Using version regex: '${version_regex}'"
         echo '::endgroup::'
 
-        # Initialize flags:
         is_latest=false
-        
-        echo '::group::Find existing version tags'
-        # Get the list of existing tags matching the template, excluding the new tag:
-        existing_tags=$(git tag --list | grep -E "$version_regex" | grep -v "^$version$" || true)
-        
-        if [ -z "$existing_tags" ]; then
-          echo 'Warn: No existing version tags found, skipping version ordering check' >&2
-          # If no other tags are present, the new version is considered the latest:
-          is_latest=true
-        else
-          # Determine the highest version among the existing tags:
-          highest_existing=$(echo "$existing_tags" | sort -V | tail -n 1)
-          echo "Highest existing version: '$highest_existing'"
-        
-          echo '::group::Compare new vs highest existing'
-          # Determine which of the two versions (the highest existing and the new) is newer:
-          new_highest=$( (echo "$highest_existing"; echo "$version") | sort -V | tail -n 1)
-          if [ "$new_highest" == "$version" ]; then
+
+        echo '::group::List version-like tags'
+        {
+          tags=()
+          load_matching_version_tags "$version_regex" "$version" tags
+          if [[ ${#tags[@]} -eq 0 ]]; then
+            echo '(none)'
+            echo "::notice title=No existing tags::Treating '${version}' as latest"
             is_latest=true
           else
-            is_latest=false
-            echo "Warn: New version $version is less than highest existing version $highest_existing" >&2
+            echo 'Existing version tags (filtered):'
+            for tag in "${tags[@]}"; do
+              printf ' - %s\n' "$tag"
+            done
+  
+            highest=''
+            select_max_version tags highest
+            echo "Highest existing version: '${highest}'"
+  
+            echo '::group::Compare new vs highest existing'
+            cmp=0
+            compare_versions_semver_like "$version" "$highest" cmp
+            if [[ $cmp -ge 0 ]]; then
+              is_latest=true
+              echo "::notice title=Version order::'${version}' is >= '${highest}' (latest)"
+            else
+              is_latest=false
+              echo "::warning title=Version order::New version '${version}' is lower than existing '${highest}'"
+            fi
+            echo '::endgroup::'
           fi
-          echo '::endgroup::'
-        fi
+        }
         echo '::endgroup::'
-        
-        # Save the results to the output of the step:
-        echo "is_latest=$is_latest" >> "$GITHUB_OUTPUT" 
+
+        # Export step outputs for the action:
+        echo "is_latest=${is_latest}" >> "$GITHUB_OUTPUT"
         #######################################################
-      shell: bash

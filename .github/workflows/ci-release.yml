@@ -1,5 +1,11 @@
 # .github/workflows/ci-release.yml
 
+# Publishes artifacts for version tags (v*.*.*):
+# - Verifies the actor is the repository owner and validates the tag via a local action.
+# - Pushes *.nupkg to NuGet (skip-duplicate) using NUGET_API_KEY.
+# - Creates a GitHub Release and uploads packaged artifacts; summarizes outcomes.
+# Fails fast on missing permissions/assets; logs are grouped and summarized for auditability.
+
 name: Release Packages CI
 
 on:
@@ -11,11 +17,15 @@ on:
 env:
   RELEASE_DIR: release
 
+  ### Error/exit codes
+  ERR_PUBLISH_NOT_ALLOWED: 21 # actor != repo owner
+  ERR_NO_PACKAGES: 31         # no *.nupkg found to publish
+
 jobs:
   verify-tag:
     name: Verify Before Publish
-    timeout-minutes: 5
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
 
@@ -28,28 +38,32 @@ jobs:
     steps:
       - name: 🛡️ Check Permissions
         run: |
+          set -o errexit -o nounset -o pipefail
+
           echo '::group::Context'
           echo "GitHub Actor: '${{ github.actor }}'"
           echo "Repository Owner: '${{ github.repository_owner }}'"
+          echo "Ref: '${{ github.ref }}'"
           echo '::endgroup::'
 
           echo '::group::Permission check'
-          if [ '${{ github.actor }}' != '${{ github.repository_owner }}' ]; then
-            echo 'Only the repository owner can publish' >&2
+          if [[ '${{ github.actor }}' != '${{ github.repository_owner }}' ]]; then
+            echo '::error title=Publishing not allowed::Only the repository owner can publish'
             echo '::endgroup::'
-            exit 103
+            exit "$ERR_PUBLISH_NOT_ALLOWED"
           fi
-          echo '✅ Publisher permissions confirmed!' >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice title=Permission OK::Actor ${{ github.actor }} can publish"
+          echo '🛡️ Publisher permissions confirmed. Actor ${{ github.actor }} can publish' >> "$GITHUB_STEP_SUMMARY"
           echo '::endgroup::'
           #######################################################
 
-      - name: ⚙ Checkout Check Tag Action
+      - name: ⚙ Checkout (for tag inspection)
         uses: actions/checkout@v5.0.0
         with:
           fetch-depth: 0
           fetch-tags: true
 
-      - name: 🔝 Check Tag Version
+      - name: 🏷️ Check Tag Version
         id: check_tag_version
         uses: ./.github/actions/check-tag-action
         timeout-minutes: 5
@@ -57,47 +71,98 @@ jobs:
           version: ${{ github.ref_name }}
           allowed_prerelease_suffix_regex: '^(alpha|beta|rc)$'
 
+      - name: 🧾 Append Tag Verdict to Summary
+        if: ${{ always() }}
+        run: |
+          {
+            echo '## 🏷️ Tag Verification'
+            echo '| Field | Value |'
+            echo '|---|---|'
+            echo '| Version | **${{ steps.check_tag_version.outputs.version }}** |'
+            echo '| Is prerelease | `${{ steps.check_tag_version.outputs.is_prerelease }}` |'
+            echo '| Is publishable | `${{ steps.check_tag_version.outputs.is_publishable }}` |'
+            echo '| Is latest | `${{ steps.check_tag_version.outputs.is_latest }}` |'
+          } >> "$GITHUB_STEP_SUMMARY"
+          #######################################################
+        continue-on-error: true
+
   push-nuget:
     name: Push To NuGet
     needs: verify-tag
     if: ${{ needs.verify-tag.outputs.is_publishable == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    permissions: { }
+    permissions: { } # no GitHub API calls here
+
+    env:
+      RELEASE_VERSION: ${{ needs.verify-tag.outputs.version }}
 
     steps:
-      - name: ⚙ Setup .NET (for nuget)
+      - name: 📥 Download Packages
+        uses: actions/download-artifact@v5.0.0
+        with:
+          name: packages-${{ github.sha }}
+          path: ${{ env.RELEASE_DIR }}
+
+      - name: 🔎 List downloaded files
+        run: |
+          echo '::group::Downloaded artifacts'
+          ls -la "$RELEASE_DIR" || true
+          echo '::endgroup::'
+        continue-on-error: true
+
+      - name: ⚙ Setup .NET (CLI only)
         # We are installing dotnet just to get the dotnet nuget command available,
         # building projects and packaging has already been done previously.
         uses: actions/setup-dotnet@v5.0.0
         with:
           dotnet-version: 9.0.x
 
-      - name: 📥 Download Packages
-        uses: actions/download-artifact@v5.0.0
-        with:
-          name: packages-${{ github.sha }}
-          path: ${{ env.RELEASE_DIR }}
-
       - name: 📣 Publish to NuGet
-        run: >-
-          dotnet nuget push ${{ env.RELEASE_DIR }}/*.nupkg
-          --api-key ${{ secrets.NUGET_API_KEY }}
-          --source ${{ vars.NUGET_SOURCE || 'https://api.nuget.org/v3/index.json' }}
-          --skip-duplicate
+        run: |
+          set -o errexit -o nounset -o pipefail
+          shopt -s nullglob
+
+          pkgs=( "$RELEASE_DIR"/*.nupkg )
+          if [ ${#pkgs[@]} -eq 0 ]; then
+            echo "::error title=No packages to publish::.nupkg files not found in '$RELEASE_DIR'"
+            exit "$ERR_NO_PACKAGES"
+          fi
+
+          echo '::group::dotnet nuget push (.nupkg)'
+          {
+            dotnet nuget push "${pkgs[@]}" \
+              --api-key '${{ secrets.NUGET_API_KEY }}' \
+              --source '${{ vars.NUGET_SOURCE || 'https://api.nuget.org/v3/index.json' }}' \
+              --skip-duplicate
+          }
+          echo '::endgroup::'
+
+          pushed_count="${#pkgs[@]}"
+          {
+            echo '## 📣 NuGet: Packages'
+            echo
+            echo '| Metric | Value |'
+            echo '|---|---|'
+            echo "| Version | **${RELEASE_VERSION}** |"
+            echo "| Pushed/Skipped (duplicates) | **${pushed_count}** |"
+          } >> "$GITHUB_STEP_SUMMARY"
         env:
           DOTNET_NOLOGO: true
           DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
           DOTNET_CLI_TELEMETRY_OPTOUT: 1
 
   create-release:
-    name: Create Release
+    name: Create GitHub Release
     needs: verify-tag
     if: ${{ needs.verify-tag.outputs.is_publishable == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     permissions:
-      contents: write # to create a GitHub Release and upload assets
+      contents: write # to create a Release and upload assets
+
+    env:
+      RELEASE_VERSION: ${{ needs.verify-tag.outputs.version }}
 
     steps:
       - name: 📥 Download Packages
@@ -106,21 +171,46 @@ jobs:
           name: packages-${{ github.sha }}
           path: ${{ env.RELEASE_DIR }}
 
+      - name: 🔎 List release assets
+        run: |
+          echo '::group::Assets to attach'
+          ls -la "$RELEASE_DIR" || true
+          echo '::endgroup::'
+        continue-on-error: true
+
       - name: 📯 Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v2.4.1
         with:
-          name: 'Release ${{ needs.verify-tag.outputs.version }}'
+          name: 'Release ${{ env.RELEASE_VERSION }}'
           generate_release_notes: true
           files: ${{ env.RELEASE_DIR }}/*
           prerelease: ${{ needs.verify-tag.outputs.is_prerelease == 'true' }}
           make_latest: ${{ needs.verify-tag.outputs.is_latest == 'true' }}
+          fail_on_unmatched_files: true
 
       - name: 🖨️ Report Release
+        if: ${{ always() }}
         run: |
+          set -o errexit -o nounset -o pipefail
+
+          url='${{ steps.create_release.outputs.url }}'
+          id='${{ steps.create_release.outputs.id }}'
+          is_latest='${{ needs.verify-tag.outputs.is_latest }}'
+          is_prerelease='${{ needs.verify-tag.outputs.is_prerelease }}'
+          assets_count="$(ls -1 "${RELEASE_DIR}"/* 2>/dev/null | wc -l | xargs || echo 0)"
+
           {
-            echo '## New Release ${{ needs.verify-tag.outputs.version }}'
-            echo '_ID: ${{ steps.create_release.outputs.id }}_'
-            echo 'URL: ${{ steps.create_release.outputs.url }}'
+            echo '## 📰 GitHub Release'
+            echo
+            echo '| Property | Value |'
+            echo '|---|---|'
+            echo "| Version | **${RELEASE_VERSION}** |"
+            echo "| _ID_ | \`${id}\` |"
+            echo "| URL | $url |"
+            echo "| Is latest | \`${is_latest}\` |"
+            echo "| Is prerelease | \`${is_prerelease}\` |"
+            echo "| Assets | $assets_count files |"
           } >> "$GITHUB_STEP_SUMMARY"
+          #######################################################
         continue-on-error: true

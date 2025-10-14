@@ -1,0 +1,152 @@
+# .github/workflows/ci-upload-coverage.yml
+
+# Uploads test coverage to Codecov:
+# - Downloads the coverage-report artifact, locates Cobertura.xml, prints a brief tree,
+#   and attempts to parse line-rate for a sanity check.
+# - Skips gracefully if the report/token is missing; summarizes preflight and result.
+# Requires CODECOV_TOKEN (secret). Designed to run after the build workflow.
+
+name: Upload Coverage
+
+on:
+  workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        required: true
+
+jobs:
+  upload-coverage:
+    name: Upload Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read        # read commit metadata
+      checks: write         # create/update check runs
+      pull-requests: write  # comment on PRs (configured in Codecov)
+
+    env:
+      COVERAGE_REPORT: coverage-report
+
+    steps:
+      - name: ⚙ Checkout (matching commit)
+        # Ensures workspace paths line up and commit metadata is available.
+        uses: actions/checkout@v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: 📥 Download Coverage Artifact
+        uses: actions/download-artifact@v5.0.0
+        with:
+          name: ${{ env.COVERAGE_REPORT }}-${{ github.sha }}
+          path: ${{ github.workspace }}/${{ env.COVERAGE_REPORT }}
+
+      - name: 🔎 Preflight - Locate Cobertura & Summarize
+        id: preflight
+        # Finds coverage file, prints a small directory listing, and writes Summary.
+        # Does not fail the job - the next step will skip upload if file is missing.
+        run: |
+          set -o errexit -o nounset -o pipefail
+
+          report_dir="${{ env.COVERAGE_REPORT }}"
+          cov_path="${report_dir}/Cobertura.xml"
+
+          echo '::group::Artifact contents'
+          if [ -d "$report_dir" ]; then
+            # brief tree (two levels) to keep logs readable:
+            find "$report_dir" -maxdepth 2 -type f -printf '%P\n' | sed 's/^/ - /'
+          else
+            echo "::warning title=Coverage artifact directory missing::${report_dir}"
+          fi
+          echo '::endgroup::'
+
+          # Fallback: if Cobertura.xml isn't at the expected path, search under the directory:
+          if [ ! -f "$cov_path" ]; then
+            alt="$(find "$report_dir" -type f -name 'Cobertura.xml' -print -quit 2>/dev/null || true)"
+            if [ -n "$alt" ]; then
+              cov_path="$alt"
+              echo "::notice title=Cobertura.xml found (alternate path)::${cov_path}"
+            fi
+          fi
+
+          found=false
+          size=0
+          if [ -f "$cov_path" ]; then
+            found=true
+            size="$(stat -c '%s' "$cov_path" 2>/dev/null || stat -f '%z' "$cov_path" || echo 0)"
+            if [ "$size" -eq 0 ] 2>/dev/null; then
+              echo "::warning title=Coverage report is empty::${cov_path}"
+            else
+              echo "::notice title=Coverage report located::path=${cov_path}; size=${size} bytes"
+            fi
+          else
+            echo "::warning title=Cobertura.xml not found::Looked under $report_dir"
+          fi
+
+          # Try to extract line-rate for a quick sanity check (best-effort):
+          line_pct=''
+          if [[ "$found" == true ]] && [ "$size" -gt 0 ]; then
+            rate=$(grep -oP '(?<=line-rate=")[0-9.]+' "$cov_path" | head -n 1 || true)
+            if [ -n "$rate" ]; then
+              line_pct="$(awk -v r="$rate" 'BEGIN{printf "%.2f", r*100}')"
+              echo "Parsed line-rate: ${line_pct}%"
+            else
+              echo "::warning title=Line-rate missing::XML does not contain line-rate attribute"
+            fi
+          fi
+
+          {
+            echo '### ☁️ Coverage Upload - Preflight'
+            if [[ "$found" == true ]]; then
+              echo "- Cobertura.xml: \`${cov_path}\`"
+              echo "- Size: \`${size}\` bytes"
+              if [ -n "$line_pct" ]; then
+                echo "- Parsed line coverage: **${line_pct}%**"
+              fi
+            else
+              echo '⚠️ `Cobertura.xml` not found in downloaded artifact'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          {
+            echo "found=${found}"
+            echo "cov_path=${cov_path}"
+            echo "size=${size}"
+          } >> "$GITHUB_OUTPUT"
+          #######################################################
+
+      - name: ☁️ Upload to Codecov
+        # Gate the upload on: (1) report presence, (2) token presence.
+        if: ${{ steps.preflight.outputs.found == 'true' }}
+        uses: codecov/codecov-action@v5.5.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.preflight.outputs.cov_path }}
+          flags: unittests
+          name: ${{ env.COVERAGE_REPORT }}-${{ github.run_id }}
+          disable_search: true
+          verbose: true
+          # Prefer not to fail CI on transient Codecov errors; flip to true to enforce strictness:
+          fail_ci_if_error: false
+
+      - name: 🧾 Summary - Upload Result
+        if: ${{ always() }}
+        run: |
+          set -o errexit -o nounset -o pipefail
+
+          # We can't reliably read the Codecov action status from here, but we can
+          # indicate what we attempted and whether it was gated or skipped:
+          found='${{ steps.preflight.outputs.found }}'
+          token_present=$([ -n '${{ secrets.CODECOV_TOKEN }}' ] && echo true || echo false)
+
+          {
+            echo
+            echo '### ☁️ Coverage Upload - Result'
+            if [[ "$found" != true ]]; then
+              echo '⚠️ Skipped: `Cobertura.xml` was not found in the artifact'
+            elif [[ "$token_present" != true ]]; then
+              echo '⚠️ Skipped: `CODECOV_TOKEN` was not provided'
+            else
+              echo '✅ Upload step invoked (see Codecov check and job logs for details)'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          #######################################################

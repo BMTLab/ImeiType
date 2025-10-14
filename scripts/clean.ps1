@@ -52,8 +52,8 @@ function Main
     # List of patterns for directories to clean
     $dirPatterns = @(
         'build*', 'bin', 'obj', 'artifacts', 'out',
-        'StrykerOutput',
         'coverage-report', 'test-results',
+        'mutation-report', 'StrykerOutput',
         'dotnet-analyzes'
     )
 

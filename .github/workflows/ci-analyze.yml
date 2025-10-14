@@ -1,5 +1,13 @@
 # .github/workflows/ci-analyze.yml
 
+# Standalone/reusable code analysis workflow:
+# - Optional CodeQL (disabled by default; enable via repo var ENABLE_CODEQL_ANALYSIS=true).
+# - Optional .NET analyzes (outdated/vulnerable packages + dotnet format analyzers) gated by ENABLE_DOTNET_ANALYSIS.
+# Doesn't break the whole workflow, but publishes errors and warnings.
+# - Produces human-readable GitHub Summary and uploads analyzer artifacts.
+# Scheduled weekly and callable from other workflows. No secrets required.
+
+
 name: Analyze CI
 
 on:
@@ -7,13 +15,13 @@ on:
 
   workflow_dispatch:
 
-  schedule: # weekly launch on Wednesdays at 19:00 UTC
+  # Weekly schedule: every Wed 19:00 UTC:
+  schedule:
     - cron: '0 19 * * 3'
 
-# Concurrency control for standalone runs (manual or scheduled):
-# - This ensures that each manual or scheduled run is unique and does not cancel others;
-# - When this workflow is called by another workflow, these settings are ignored,
-#   and the caller's concurrency rules apply.
+# Concurrency for manual/scheduled runs:
+# - Do NOT cancel an in-flight run; allow multiple on-demand analyses to coexist.
+# - When this workflow is "called" by another workflow, caller's concurrency applies.
 concurrency:
   group: ${{ github.workflow }}-${{ github.run_id }}
   cancel-in-progress: false
@@ -31,17 +39,17 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
-      security-events: write # to upload CodeQL results
+      security-events: write  # required for uploading SARIF to Security tab
 
     steps:
       - name: ⚙ Checkout
         uses: actions/checkout@v5.0.0
         with:
-          # Fetch all history for all branches and tags.
-          # This is required for tools like GitVersion that analyze commit history:
+          # fetch-depth: 0 helps tools that need history:
           fetch-depth: 0
 
-      - name: ⚙ Checkout PR
+      - name: ⚙ Checkout PR merge head
+        # In PRs, ensure we analyze the actual merge result (like default codeql setup does):
         if: ${{ github.event_name == 'pull_request' }}
         run: git checkout HEAD^2
 
@@ -49,8 +57,7 @@ jobs:
         uses: github/codeql-action/init@v4.30.8
         with:
           languages: csharp
-          # This mode skips the auto-build step, significantly speeding up the analysis.
-          # It works well for standard .NET projects:
+          # We skip autobuild for speed; works for standard .NET repos:
           build-mode: none
 
       - name: 🩻 Perform CodeQL Analysis
@@ -65,18 +72,16 @@ jobs:
     permissions:
       contents: read
     env:
-      # Directories
+      ### Directories
       DOTNET_ANALYZES: dotnet-analyzes
 
-      # Performance / Noise
+      ### Performance / noise (safe in CI)
       DOTNET_NOLOGO: true
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
       DOTNET_CLI_TELEMETRY_OPTOUT: 1
-      # Disables "reuse" of MSBuild nodes (worker processes).
-      # Equivalent to the msbuild /nr:false flag - after build, auxiliary processes are not left hanging:
+      # Avoid MSBuild node reuse across steps:
       MSBUILDDISABLENODEREUSE: ${{ vars.MSBUILDDISABLENODEREUSE || '1' }}
-      # Disables extract XML documentation files from NuGet packages when restoring (they are just skipped).
-      # Useful for CIs where you don't need IntelliSense on dependencies:
+      # Skip downloading NuGet xml docs (reduce IO & bandwidth):
       NUGET_XMLDOC_MODE: ${{ vars.NUGET_XMLDOC_MODE || 'skip' }}
 
     steps:
@@ -84,6 +89,7 @@ jobs:
         uses: actions/checkout@v5.0.0
 
       - name: ⚙ Setup .NET
+        # Installs multiple SDKs + enables NuGet caching keyed by packages.lock.json.
         uses: actions/setup-dotnet@v5.0.0
         with:
           dotnet-version: |
@@ -94,113 +100,151 @@ jobs:
           cache: true
           cache-dependency-path: '**/packages.lock.json'
 
-      - name: 🧩 Restore Dependencies
-        run: dotnet restore --locked-mode
+      - name: 🧩 Restore Dependencies (locked mode)
+        # Guardrail for reproducible dependency graphs.
+        run: |
+          set -o errexit -o nounset -o pipefail
+          echo '::group::dotnet restore (locked-mode)'
+          dotnet restore --locked-mode
+          echo '::endgroup::'
+          echo "::notice title=Restore completed::Mode=locked; NUGET_XMLDOC_MODE=${NUGET_XMLDOC_MODE}"
+          #######################################################
 
       - name: ⚙ Create Analyzes Directory
         run: mkdir -p "$DOTNET_ANALYZES"
 
       - name: 📦 Detect Outdated NuGet Packages
+        # Runs `dotnet list package --outdated` and summarizes.
+        # Heuristic for "something outdated": lines that begin with "> " in the report tables.
+        # Does not fail the job; emits ::warning when any outdated package detected.
         run: |
-          set -o pipefail
-          outdated_report='outdated-report.txt'
-          
-          echo '::group::List packages'
+          set -o errexit -o nounset -o pipefail
+
+          outdated_report_file='outdated-report.txt'
+
+          echo '::group::List packages (outdated)'
           {
             dotnet list package \
-              --outdated \
-              | tee "${DOTNET_ANALYZES}"/"${outdated_report}"
-          }
+            --outdated
+          } | tee "${DOTNET_ANALYZES}/${outdated_report_file}"
           echo '::endgroup::'
 
-          {
-            echo '### 📦 NuGet: Outdated packages'
-            echo '```text'
-            cat "${DOTNET_ANALYZES}"/"${outdated_report}"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-        continue-on-error: true
-
-      - name: 🛡️ Detect Vulnerable NuGet Packages
-        run: |
-          set -o pipefail
-          vulnerable_report_file='vulnerable-report.txt'
-          
-          echo '::group::List packages'
-          {
-            dotnet list package \
-              --vulnerable \
-              --include-transitive \
-              | tee "${DOTNET_ANALYZES}"/"${vulnerable_report_file}"
-          }
-          echo '::endgroup::'
+          outdated_count="$(grep -Ec '^\s*>\s' "${DOTNET_ANALYZES}/${outdated_report_file}" || true)"
+          if [[ "$outdated_count" != '0' ]]; then
+            echo "::warning title=NuGet outdated::Found $outdated_count outdated package rows." \
+                 'See summary and artifact'
+          else
+            echo '::notice title=NuGet outdated::No outdated packages detected'
+          fi
 
           {
-            echo '### 🛡️ NuGet: Vulnerable packages'
+            echo '## 📦 NuGet: Outdated packages'
+            echo
+            echo "_Detected rows_: **${outdated_count}**"
+            echo
             echo '```text'
-            cat "${DOTNET_ANALYZES}"/"${vulnerable_report_file}"
+            cat "${DOTNET_ANALYZES}/${outdated_report_file}"
             echo
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
         continue-on-error: true
 
-      - name: 🩻 Detect .NET Format Issues
+      - name: 🛡️ Detect Vulnerable NuGet Packages
+        # Runs `dotnet list package --vulnerable --include-transitive`.
+        # Emits ::error if any vulnerability is found (but step is continue-on-error to not stop the workflow).
         run: |
-          set -o pipefail
+          set -o errexit -o nounset -o pipefail
+
+          vulnerable_report_file='vulnerable-report.txt'
+
+          echo '::group::List packages (vulnerable)'
+          {
+            dotnet list package \
+              --vulnerable \
+              --include-transitive
+          } | tee "${DOTNET_ANALYZES}/${vulnerable_report_file}"
+          echo '::endgroup::'
+
+          # Several markers that appear in vulnerability reports:
+          vulnerable_count="$(grep -Eic '^\s*>\s|Severity|CVE-' "${DOTNET_ANALYZES}/${vulnerable_report_file}" || true)"
+          if [[ "$vulnerable_count" != '0' ]]; then
+            echo '::error title=NuGet vulnerabilities::Potentially vulnerable packages detected' \
+                 "(markers matched: ${vulnerable_count})." \
+                 'See summary and artifact'
+          else
+            echo '::notice title=NuGet vulnerabilities::No vulnerable packages detected'
+          fi
+
+          {
+            echo '## 🛡️ NuGet: Vulnerable packages'
+            echo
+            echo "_Markers matched (heuristic)_: **${vulnerable_count}**"
+            echo
+            echo '```text'
+            cat "${DOTNET_ANALYZES}/${vulnerable_report_file}"
+            echo
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+        continue-on-error: true
+
+      - name: 🩻 Detect .NET Analyzer/Format Issues
+        # Runs `dotnet format analyzers` and produces a JSON report in $DOTNET_ANALYZES/format-report.json.
+        # We don't fail the job here; it is an advisory signal.
+        run: |
+          set -o errexit -o nounset -o pipefail
+
           format_report_log_file='format-report.log'
-          
-          echo '::group::Perform dotnet-format'
+
+          echo '::group::dotnet format analyzers'
           {
             dotnet format analyzers \
               --severity info \
               --verify-no-changes \
               --include src \
               --verbosity diagnostic \
-              --report "$DOTNET_ANALYZES" | tee "${DOTNET_ANALYZES}"/"${format_report_log_file}"
-          }
+              --report "$DOTNET_ANALYZES"
+          } | tee "${DOTNET_ANALYZES}/${format_report_log_file}"
           echo '::endgroup::'
-          
-          echo '::group::Summary tail'
-          tail -n 20 "${DOTNET_ANALYZES}"/"${format_report_log_file}" || true
-          echo '::endgroup::'
-        continue-on-error: true
 
-      - name: 🧾 Append .NET Format Report to Summary
-        if: ${{ always() }}
-        run: |
+          echo '::group::dotnet-format tail'
+          tail -n 20 "${DOTNET_ANALYZES}/${format_report_log_file}" || true
+          echo '::endgroup::'
+
+          # Try standard JSON report file; fallback to any *.json in folder if tool version changes naming:
           format_report_file="${DOTNET_ANALYZES}/format-report.json"
-
-          # Fallback: if the standard report file is renamed in the feature version, take any .json in the folder
-          echo '::group::Look for dotnet-format JSON report '
           if [ ! -f "$format_report_file" ]; then
-            alt_json=$(ls -1 "${DOTNET_ANALYZES}"/*.json 2>/dev/null | head -n1 || true)
+            alt_json="$(ls -1 "$DOTNET_ANALYZES"/*.json 2>/dev/null | head -n 1 || true)"
             if [ -n "$alt_json" ]; then
               format_report_file="$alt_json"
-              echo "Info: Falling back to '$format_report_file'"
-            else
-              echo "Warn: No JSON report found in \`$DOTNET_ANALYZES\`" >&2
+              echo "::notice title=dotnet-format::Using alternate JSON report: $format_report_file"
             fi
           fi
-          echo '::endgroup::'
 
-          {
-            echo '### 🧾 .NET Format Report'
-            if [ -f "$format_report_file" ]; then
-              format_report="$(cat "$format_report_file")"
-              if [ "$format_report" == '[]' ]; then
-                echo '✅ No formatting issues were found'
-              else
+          echo '## 🧾 .NET Format Report' >> "$GITHUB_STEP_SUMMARY"
+          if [ -f "$format_report_file" ]; then
+            report_json="$(cat "$format_report_file" || echo '[]')"
+            if [[ "$report_json" == '[]' ]]; then
+              echo '::notice title=dotnet-format::No analyzer/format issues found'
+              echo '✅ No analyzer/format issues found' >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo '::warning title=dotnet-format::Analyzer/format issues found.' \
+                   'See summary and artifacts'
+              {
+                echo
                 echo '```json'
-                echo "$format_report"
+                echo "$report_json"
                 echo
                 echo '```'
-              fi
-            else
-              echo '⚠️ No JSON report found'
+              } >> "$GITHUB_STEP_SUMMARY"
             fi
-          } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning title=dotnet-format::JSON report not found in $DOTNET_ANALYZES"
+            echo '⚠️ No JSON report found' >> "$GITHUB_STEP_SUMMARY"
+          fi
+        continue-on-error: true
 
-      - name: 📤 Upload Analyzers Reports
+      - name: 📤 Upload Analyzer Reports
+        # Always upload to help debugging locally vs CI differences.
         if: ${{ always() }}
         uses: actions/upload-artifact@v4.6.2
         with:
