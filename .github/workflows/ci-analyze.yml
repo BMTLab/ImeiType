@@ -75,42 +75,22 @@ jobs:
       ### Directories
       DOTNET_ANALYZES: dotnet-analyzes
 
-      ### Performance / noise (safe in CI)
-      DOTNET_NOLOGO: true
-      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
-      DOTNET_CLI_TELEMETRY_OPTOUT: 1
-      # Avoid MSBuild node reuse across steps:
-      MSBUILDDISABLENODEREUSE: ${{ vars.MSBUILDDISABLENODEREUSE || '1' }}
-      # Skip downloading NuGet xml docs (reduce IO & bandwidth):
-      NUGET_XMLDOC_MODE: ${{ vars.NUGET_XMLDOC_MODE || 'skip' }}
-
     steps:
-      - name: ⚙ Checkout
+      - name: ⚙️ Checkout
         uses: actions/checkout@v5.0.0
-
-      - name: ⚙ Setup .NET
-        # Installs multiple SDKs + enables NuGet caching keyed by packages.lock.json.
-        uses: actions/setup-dotnet@v5.0.0
         with:
-          dotnet-version: |
-            9.0.x
-            8.0.x
-            7.0.x
-            6.0.x
-          cache: true
-          cache-dependency-path: '**/packages.lock.json'
+          fetch-depth: 0
 
-      - name: 🧩 Restore Dependencies (locked mode)
-        # Guardrail for reproducible dependency graphs.
-        run: |
-          set -o errexit -o nounset -o pipefail
-          echo '::group::dotnet restore (locked-mode)'
-          dotnet restore --locked-mode
-          echo '::endgroup::'
-          echo "::notice title=Restore completed::Mode=locked; NUGET_XMLDOC_MODE=${NUGET_XMLDOC_MODE}"
-          #######################################################
+      # Shared setup without build:
+      # - configures .NET env, PATH and problem matcher;
+      # - installs SDKs, restores tools and solution.
+      - name: 🔧 Setup project
+        uses: ./.github/actions/setup-project
+        with:
+          run_build: 'false'
 
       - name: ⚙ Create Analyzes Directory
+        shell: sh
         run: mkdir -p "$DOTNET_ANALYZES"
 
       - name: 📦 Detect Outdated NuGet Packages
@@ -125,7 +105,7 @@ jobs:
           echo '::group::List packages (outdated)'
           {
             dotnet list package \
-            --outdated
+              --outdated
           } | tee "${DOTNET_ANALYZES}/${outdated_report_file}"
           echo '::endgroup::'
 

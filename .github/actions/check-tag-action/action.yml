@@ -40,11 +40,12 @@ runs:
   using: composite
 
   steps:
-    - name: Validate Version Tag Format
+    # 1. Validate tag syntax and prerelease rules (format + allowed prerelease labels).
+    - name: 🔎 Validate Version Tag Format
       id: validate_tag_format
       shell: bash
       env:
-        ERR_INVALID_FORMAT: '101'
+        ERR_INVALID_VERSION_FORMAT: '101'
       run: |
         set -o errexit -o errtrace -o nounset -o pipefail
 
@@ -73,8 +74,8 @@ runs:
         #   4: _is_prerelease (bool)                 - true if version has a prerelease token.
         #   5: _is_publishable (bool)                - true if format is valid and prerelease is allowed (if present).
         # Returns:
-        #   0                     - If format OK (and prerelease allowed when present).
-        #   $ERR_INVALID_FORMAT   - If format does not match the regex.
+        #   0                                        - If format OK (and prerelease allowed when present).
+        #   $ERR_INVALID_VERSION_FORMAT              - If format does not match the regex.
         #######################################
         function validate_version_format_and_prerelease() {
           local -r version="$1"
@@ -107,7 +108,7 @@ runs:
           else
             echo "::error title=Invalid version format::'${version}' does not match '${version_regex}'"
             echo '::endgroup::'
-            return "$ERR_INVALID_FORMAT"
+            return "$ERR_INVALID_VERSION_FORMAT"
           fi
           echo '::endgroup::'
           return 0
@@ -118,18 +119,19 @@ runs:
         if ! validate_version_format_and_prerelease \
               "$version" "$version_regex" "$allowed_prerelease_suffix_regex" \
               is_prerelease is_publishable; then
-          exit "$ERR_INVALID_FORMAT"
+          exit "$ERR_INVALID_VERSION_FORMAT"
         fi
 
         # Export step outputs for the action:
         {
-          echo "is_publishable=${is_publishable}"
-          echo "is_prerelease=${is_prerelease}"
-          echo "version=${version}"
+          printf 'is_publishable=%s\n' "$is_publishable"
+          printf 'is_prerelease=%s\n' "$is_prerelease"
+          printf 'version=%s\n' "$version"
         } >> "$GITHUB_OUTPUT"
         #######################################################
 
-    - name: Validate Correct Version Order
+    # 2. Compare against existing tags and decide whether this is the latest.
+    - name: 🔢 Validate Correct Version Order
       id: check_tag_ordering
       shell: bash
       run: |
@@ -189,8 +191,8 @@ runs:
           # grep -E applies the regex filter; grep -Fxv removes the exact match (excluded tag):
           mapfile -t _tags < <(
             git tag --list \
-            | grep -E -- "$version_regex" \
-            | grep -Fxv -- "$excluded_exact_tag" \
+              | grep -E -- "$version_regex" \
+              | grep -Fxv -- "$excluded_exact_tag" \
             || true
           )
         }
@@ -223,7 +225,7 @@ runs:
           # `sort -V` does version-aware ordering; head is the smaller, tail is the larger:
           local first last
           first="$(printf '%s\n' "$version_a" "$version_b" | sort -V | head -n1 || true)"
-          last="$( printf '%s\n' "$version_a" "$version_b" | sort -V | tail -n1 || true)"
+          last="$(printf '%s\n' "$version_a" "$version_b" | sort -V | tail -n1 || true)"
 
           if [[ "$last" == "$version_a" ]]; then
             _cmp=1
@@ -302,5 +304,5 @@ runs:
         echo '::endgroup::'
 
         # Export step outputs for the action:
-        echo "is_latest=${is_latest}" >> "$GITHUB_OUTPUT"
+        printf 'is_latest=%s\n' "$is_latest" >> "$GITHUB_OUTPUT"
         #######################################################

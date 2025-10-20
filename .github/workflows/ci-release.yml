@@ -15,9 +15,9 @@ on:
         required: true
 
 env:
+  ### Directories
   RELEASE_DIR: release
-
-  ### Error/exit codes
+  ### Error Codes
   ERR_PUBLISH_NOT_ALLOWED: 21 # actor != repo owner
   ERR_NO_PACKAGES: 31         # no *.nupkg found to publish
 
@@ -52,7 +52,7 @@ jobs:
             echo '::endgroup::'
             exit "$ERR_PUBLISH_NOT_ALLOWED"
           fi
-          echo "::notice title=Permission OK::Actor ${{ github.actor }} can publish"
+          echo '::notice title=Permission OK::Actor ${{ github.actor }} can publish'
           echo '🛡️ Publisher permissions confirmed. Actor ${{ github.actor }} can publish' >> "$GITHUB_STEP_SUMMARY"
           echo '::endgroup::'
           #######################################################
@@ -84,7 +84,6 @@ jobs:
             echo '| Is latest | `${{ steps.check_tag_version.outputs.is_latest }}` |'
           } >> "$GITHUB_STEP_SUMMARY"
           #######################################################
-        continue-on-error: true
 
   push-nuget:
     name: Push To NuGet
@@ -93,9 +92,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions: { } # no GitHub API calls here
-
     env:
+      ### Directories
       RELEASE_VERSION: ${{ needs.verify-tag.outputs.version }}
+      ### Performance / Less Noise
+      DOTNET_NOLOGO: true
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
 
     steps:
       - name: 📥 Download Packages
@@ -104,15 +107,14 @@ jobs:
           name: packages-${{ github.sha }}
           path: ${{ env.RELEASE_DIR }}
 
-      - name: 🔎 List downloaded files
+      - name: 🔎 List Downloaded Files
         run: |
           echo '::group::Downloaded artifacts'
           ls -la "$RELEASE_DIR" || true
           echo '::endgroup::'
-        continue-on-error: true
 
       - name: ⚙ Setup .NET (CLI only)
-        # We are installing dotnet just to get the dotnet nuget command available,
+        # Just to get the "dotnet nuget" command available,
         # building projects and packaging has already been done previously.
         uses: actions/setup-dotnet@v5.0.0
         with:
@@ -123,7 +125,7 @@ jobs:
           set -o errexit -o nounset -o pipefail
           shopt -s nullglob
 
-          pkgs=( "$RELEASE_DIR"/*.nupkg )
+          pkgs=("${RELEASE_DIR}"/*.nupkg)
           if [ ${#pkgs[@]} -eq 0 ]; then
             echo "::error title=No packages to publish::.nupkg files not found in '$RELEASE_DIR'"
             exit "$ERR_NO_PACKAGES"
@@ -147,10 +149,7 @@ jobs:
             echo "| Version | **${RELEASE_VERSION}** |"
             echo "| Pushed/Skipped (duplicates) | **${pushed_count}** |"
           } >> "$GITHUB_STEP_SUMMARY"
-        env:
-          DOTNET_NOLOGO: true
-          DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
-          DOTNET_CLI_TELEMETRY_OPTOUT: 1
+          #######################################################
 
   create-release:
     name: Create GitHub Release
@@ -160,8 +159,8 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write # to create a Release and upload assets
-
     env:
+      ### Directories
       RELEASE_VERSION: ${{ needs.verify-tag.outputs.version }}
 
     steps:
@@ -171,12 +170,11 @@ jobs:
           name: packages-${{ github.sha }}
           path: ${{ env.RELEASE_DIR }}
 
-      - name: 🔎 List release assets
+      - name: 🔎 List Release Assets
         run: |
           echo '::group::Assets to attach'
           ls -la "$RELEASE_DIR" || true
           echo '::endgroup::'
-        continue-on-error: true
 
       - name: 📯 Create GitHub Release
         id: create_release
@@ -190,7 +188,6 @@ jobs:
           fail_on_unmatched_files: true
 
       - name: 🖨️ Report Release
-        if: ${{ always() }}
         run: |
           set -o errexit -o nounset -o pipefail
 
@@ -213,4 +210,3 @@ jobs:
             echo "| Assets | $assets_count files |"
           } >> "$GITHUB_STEP_SUMMARY"
           #######################################################
-        continue-on-error: true

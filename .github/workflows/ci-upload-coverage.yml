@@ -4,7 +4,7 @@
 # - Downloads the coverage-report artifact, locates Cobertura.xml, prints a brief tree,
 #   and attempts to parse line-rate for a sanity check.
 # - Skips gracefully if the report/token is missing; summarizes preflight and result.
-# Requires CODECOV_TOKEN (secret). Designed to run after the build workflow.
+# Requires CODECOV_TOKEN (secret).
 
 name: Upload Coverage
 
@@ -25,6 +25,7 @@ jobs:
       pull-requests: write  # comment on PRs (configured in Codecov)
 
     env:
+      ### Directories
       COVERAGE_REPORT: coverage-report
 
     steps:
