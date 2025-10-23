@@ -10,6 +10,19 @@ name: Release Packages CI
 
 on:
   workflow_call:
+    inputs:
+      dry-run:
+        description: >-
+          'If true, do NOT publish to NuGet or create a GitHub Release;'
+          'only validate and print a plan'
+        required: false
+        type: boolean
+        default: false
+      version:
+        description: >-
+          'Override version (e.g., v1.2.3) - useful in dry-run on PRs without a tag'
+        required: true
+        type: string
     secrets:
       NUGET_API_KEY:
         required: true
@@ -30,10 +43,10 @@ jobs:
       contents: read
 
     outputs:
-      version: ${{ steps.check_tag_version.outputs.version }}
-      is_prerelease: ${{ steps.check_tag_version.outputs.is_prerelease }}
-      is_latest: ${{ steps.check_tag_version.outputs.is_latest }}
-      is_publishable: ${{ steps.check_tag_version.outputs.is_publishable }}
+      version: ${{ steps.check-tag-version.outputs.version }}
+      is-prerelease: ${{ steps.check-tag-version.outputs.is-prerelease }}
+      is-latest: ${{ steps.check-tag-version.outputs.is-latest }}
+      is-publishable: ${{ steps.check-tag-version.outputs.is-publishable }}
 
     steps:
       - name: 🛡️ Check Permissions
@@ -64,12 +77,12 @@ jobs:
           fetch-tags: true
 
       - name: 🏷️ Check Tag Version
-        id: check_tag_version
+        id: check-tag-version
         uses: ./.github/actions/check-tag-action
         timeout-minutes: 5
         with:
-          version: ${{ github.ref_name }}
-          allowed_prerelease_suffix_regex: '^(alpha|beta|rc)$'
+          version: ${{ inputs.version }}
+          allowed-prerelease-suffix-regex: '^(alpha|beta|rc)$'
 
       - name: 🧾 Append Tag Verdict to Summary
         if: ${{ always() }}
@@ -78,17 +91,19 @@ jobs:
             echo '## 🏷️ Tag Verification'
             echo '| Field | Value |'
             echo '|---|---|'
-            echo '| Version | **${{ steps.check_tag_version.outputs.version }}** |'
-            echo '| Is prerelease | `${{ steps.check_tag_version.outputs.is_prerelease }}` |'
-            echo '| Is publishable | `${{ steps.check_tag_version.outputs.is_publishable }}` |'
-            echo '| Is latest | `${{ steps.check_tag_version.outputs.is_latest }}` |'
+            echo '| Version | **${{ steps.check-tag-version.outputs.version }}** |'
+            echo '| Is prerelease | `${{ steps.check-tag-version.outputs.is-prerelease }}` |'
+            echo '| Is publishable | `${{ steps.check-tag-version.outputs.is-publishable }}` |'
+            echo '| Is latest | `${{ steps.check-tag-version.outputs.is-latest }}` |'
           } >> "$GITHUB_STEP_SUMMARY"
           #######################################################
 
   push-nuget:
     name: Push To NuGet
     needs: verify-tag
-    if: ${{ needs.verify-tag.outputs.is_publishable == 'true' }}
+    if: >-
+      ${{ inputs.dry-run != 'true'
+      && needs.verify-tag.outputs.is-publishable == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions: { } # no GitHub API calls here
@@ -131,9 +146,9 @@ jobs:
             exit "$ERR_NO_PACKAGES"
           fi
 
-          echo '::group::dotnet nuget push (.nupkg)'
+          echo '::group::dotnet nuget push'
           {
-            dotnet nuget push "${pkgs[@]}" \
+            dotnet nuget push "${RELEASE_DIR}/*" \
               --api-key '${{ secrets.NUGET_API_KEY }}' \
               --source '${{ vars.NUGET_SOURCE || 'https://api.nuget.org/v3/index.json' }}' \
               --skip-duplicate
@@ -154,7 +169,9 @@ jobs:
   create-release:
     name: Create GitHub Release
     needs: verify-tag
-    if: ${{ needs.verify-tag.outputs.is_publishable == 'true' }}
+    if: >- 
+        ${{ inputs.dry-run != 'true'
+        && needs.verify-tag.outputs.is-publishable == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -177,24 +194,24 @@ jobs:
           echo '::endgroup::'
 
       - name: 📯 Create GitHub Release
-        id: create_release
+        id: create-release
         uses: softprops/action-gh-release@v2.4.1
         with:
           name: 'Release ${{ env.RELEASE_VERSION }}'
           generate_release_notes: true
           files: ${{ env.RELEASE_DIR }}/*
-          prerelease: ${{ needs.verify-tag.outputs.is_prerelease == 'true' }}
-          make_latest: ${{ needs.verify-tag.outputs.is_latest == 'true' }}
+          prerelease: ${{ needs.verify-tag.outputs.is-prerelease == 'true' }}
+          make_latest: ${{ needs.verify-tag.outputs.is-latest == 'true' }}
           fail_on_unmatched_files: true
 
       - name: 🖨️ Report Release
         run: |
           set -o errexit -o nounset -o pipefail
 
-          url='${{ steps.create_release.outputs.url }}'
-          id='${{ steps.create_release.outputs.id }}'
-          is_latest='${{ needs.verify-tag.outputs.is_latest }}'
-          is_prerelease='${{ needs.verify-tag.outputs.is_prerelease }}'
+          url='${{ steps.create-release.outputs.url }}'
+          id='${{ steps.create-release.outputs.id }}'
+          is_latest='${{ needs.verify-tag.outputs.is-latest }}'
+          is_prerelease='${{ needs.verify-tag.outputs.is-prerelease }}'
           assets_count="$(ls -1 "${RELEASE_DIR}"/* 2>/dev/null | wc -l | xargs || echo 0)"
 
           {

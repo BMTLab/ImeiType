@@ -126,7 +126,7 @@ jobs:
           name: ${{ env.COVERAGE_REPORT }}-${{ github.run_id }}
           disable_search: true
           verbose: true
-          # Prefer not to fail CI on transient Codecov errors; flip to true to enforce strictness:
+          # Prefer not to fail CI on transient Codecov errors:
           fail_ci_if_error: false
 
       - name: 🧾 Summary - Upload Result

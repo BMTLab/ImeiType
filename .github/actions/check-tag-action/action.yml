@@ -5,36 +5,36 @@ description: >-
   Validates the tag version format and checks version ordering.
   Outputs:
     - version: the validated version (same as input);
-    - is_prerelease: 'true' if the version includes a prerelease part;
-    - is_publishable: 'true' if the version format is correct and (if prerelease) allowed for publication;
-    - is_latest: 'true' if the version is the highest among existing version tags.
+    - is-prerelease: 'true' if the version includes a prerelease part;
+    - is-publishable: 'true' if the version format is correct and (if prerelease) allowed for publication;
+    - is-latest: 'true' if the version is the highest among existing version tags.
 
 inputs:
   version:
     description: 'Version from the tag (e.g. v1.0.0 or v1.0.0-alpha)'
     required: true
-  version_regex:
+  version-regex:
     description: 'Regular expression to check the version format and filter existing tags'
     required: false
     # Format: vMAJOR.MINOR.PATCH or vMAJOR.MINOR.PATCH-PRERELEASE
     default: '^v[0-9]+\.[0-9]+\.[0-9]+(-([0-9A-Za-z]+))?$'
-  allowed_prerelease_suffix_regex:
+  allowed-prerelease-suffix-regex:
     description: 'Regular expression for acceptable prerelease values (e.g. "^(alpha|beta|rc)$")'
     required: true
 
 outputs:
   version:
     description: 'The validated version'
-    value: ${{ steps.validate_tag_format.outputs.version }}
-  is_prerelease:
+    value: ${{ steps.validate-tag-format.outputs.version }}
+  is-prerelease:
     description: 'True if the version is a prerelease'
-    value: ${{ steps.validate_tag_format.outputs.is_prerelease }}
-  is_publishable:
+    value: ${{ steps.validate-tag-format.outputs.is-prerelease }}
+  is-publishable:
     description: 'True if the version is publishable'
-    value: ${{ steps.validate_tag_format.outputs.is_publishable }}
-  is_latest:
+    value: ${{ steps.validate-tag-format.outputs.is-publishable }}
+  is-latest:
     description: 'True if the version is the highest (latest) among existing tags'
-    value: ${{ steps.check_tag_ordering.outputs.is_latest }}
+    value: ${{ steps.check-tag-ordering.outputs.is-latest }}
 
 runs:
   using: composite
@@ -42,7 +42,7 @@ runs:
   steps:
     # 1. Validate tag syntax and prerelease rules (format + allowed prerelease labels).
     - name: 🔎 Validate Version Tag Format
-      id: validate_tag_format
+      id: validate-tag-format
       shell: bash
       env:
         ERR_INVALID_VERSION_FORMAT: '101'
@@ -51,8 +51,8 @@ runs:
 
         # Inputs from the caller:
         version='${{ inputs.version }}'
-        version_regex='${{ inputs.version_regex }}'
-        allowed_prerelease_suffix_regex='${{ inputs.allowed_prerelease_suffix_regex }}'
+        version_regex='${{ inputs.version-regex }}'
+        allowed_prerelease_suffix_regex='${{ inputs.allowed-prerelease-suffix-regex }}'
 
         echo '::group::Inputs'
         echo "Detected version: '${version}'"
@@ -99,10 +99,12 @@ runs:
               echo "::notice title=Prerelease detected::'${prerelease_token}'"
 
               if [[ "$prerelease_token" =~ $allowed_prerelease_suffix_regex ]]; then
-                echo "::notice title=Prerelease allowed::'${prerelease_token}' matches '${allowed_prerelease_suffix_regex}'"
+                echo "::notice title=Prerelease allowed::'${prerelease_token}'" \
+                     "matches '${allowed_prerelease_suffix_regex}'"
                 _is_publishable=true
               else
-                echo "::warning title=Prerelease not allowed::'${prerelease_token}' does not match '${allowed_prerelease_suffix_regex}'"
+                echo "::warning title=Prerelease not allowed::'${prerelease_token}'" \
+                     "does not match '${allowed_prerelease_suffix_regex}'"
               fi
             fi
           else
@@ -124,22 +126,22 @@ runs:
 
         # Export step outputs for the action:
         {
-          printf 'is_publishable=%s\n' "$is_publishable"
-          printf 'is_prerelease=%s\n' "$is_prerelease"
+          printf 'is-publishable=%s\n' "$is_publishable"
+          printf 'is-prerelease=%s\n' "$is_prerelease"
           printf 'version=%s\n' "$version"
         } >> "$GITHUB_OUTPUT"
         #######################################################
 
     # 2. Compare against existing tags and decide whether this is the latest.
     - name: 🔢 Validate Correct Version Order
-      id: check_tag_ordering
+      id: check-tag-ordering
       shell: bash
       run: |
         set -o errexit -o errtrace -o nounset -o pipefail
 
         # Inputs from the caller:
         version='${{ inputs.version }}'
-        version_regex='${{ inputs.version_regex }}'
+        version_regex='${{ inputs.version-regex }}'
 
         #######################################
         # Ensures `git tag` reflects remote tags.
@@ -304,5 +306,5 @@ runs:
         echo '::endgroup::'
 
         # Export step outputs for the action:
-        printf 'is_latest=%s\n' "$is_latest" >> "$GITHUB_OUTPUT"
+        printf 'is-latest=%s\n' "$is_latest" >> "$GITHUB_OUTPUT"
         #######################################################

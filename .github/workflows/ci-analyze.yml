@@ -87,7 +87,7 @@ jobs:
       - name: 🔧 Setup project
         uses: ./.github/actions/setup-project
         with:
-          run_build: 'false'
+          run-build: 'false'
 
       - name: ⚙ Create Analyzes Directory
         shell: sh

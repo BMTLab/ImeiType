@@ -27,8 +27,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Shared setup: checkout (inside), multi-SDKs, tools cache, restore (locked),
-      # MSBuild matcher, and a Release build used by the pack step below.
       - name: 🔧 Setup project
         uses: ./.github/actions/setup-project
 

@@ -34,7 +34,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Shared setup: checkout, multi-SDKs, tools cache, restore (locked), matcher, build.
       - name: 🔧 Setup project
         uses: ./.github/actions/setup-project
 
@@ -83,7 +82,7 @@ jobs:
           #######################################################
 
       - name: 🧮 Evaluate Coverage Gate
-        id: coverage_eval
+        id: coverage-eval
         # Non-failing evaluation step that computes % and threshold compliance.
         # Results are written to step outputs for use by both the summary and the enforcement step.
         if: ${{ always() }}
@@ -213,12 +212,12 @@ jobs:
       - name: 🚦 Enforce Coverage Gate
         # This is the only failing step in the gate flow.
         if: >-
-          ${{ steps.coverage_eval.outputs.found == 'true'
-          && steps.coverage_eval.outputs.meets != 'true' }}
+          ${{ steps.coverage-eval.outputs.found == 'true'
+          && steps.coverage-eval.outputs.meets != 'true' }}
         run: |
           set -o errexit -o nounset -o pipefail
 
-          echo "::error title=Coverage gate failed::${{ steps.coverage_eval.outputs.pct }}% < ${MIN_LINE_COVERAGE}%"
+          echo "::error title=Coverage gate failed::${{ steps.coverage-eval.outputs.pct }}% < ${MIN_LINE_COVERAGE}%"
           exit "$ERR_COVERAGE_GATE_FAIL"
           #######################################################
 
@@ -239,8 +238,8 @@ jobs:
           md="${COVERAGE_REPORT}/SummaryGithub.md"
           {
             echo '## 🧪 Unit Tests & Coverage'
-            if [[ '${{ steps.coverage_eval.outputs.found }}' == 'true' ]]; then
-              echo "Line coverage: **${{ steps.coverage_eval.outputs.pct }}%** (min: ${MIN_LINE_COVERAGE}%)"
+            if [[ '${{ steps.coverage-eval.outputs.found }}' == 'true' ]]; then
+              echo "Line coverage: **${{ steps.coverage-eval.outputs.pct }}%** (min: ${MIN_LINE_COVERAGE}%)"
             else
               echo '⚠️ `Cobertura.xml` not found'
             fi

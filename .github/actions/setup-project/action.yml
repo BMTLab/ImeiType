@@ -12,7 +12,7 @@ description: >-
     - Optionally builds the solution (with a verbose fallback on failure).
 
 inputs:
-  run_build:
+  run-build:
     description: 'If true, runs `dotnet build -c Release --no-restore` and a verbose rebuild on failure'
     required: false
     default: 'true'
@@ -170,10 +170,10 @@ runs:
         echo '::endgroup::'
       continue-on-error: true
 
-    # Optional build step (controlled by inputs.run_build).
+    # Optional build step (controlled by inputs.run-build).
     # If this fails, the composite keeps running to allow the verbose fallback below.
     - name: 🛠️ Build
-      if: ${{ inputs.run_build == 'true' }}
+      if: ${{ inputs.run-build == 'true' }}
       shell: bash
       run: |
         set -o errexit -o nounset -o pipefail
@@ -186,7 +186,7 @@ runs:
     # Fallback: verbose rebuild with optional repo cleaning script (PowerShell).
     # Triggers only if a previous step in this composite failed (typically the build).
     - name: 🔧 Rebuild (verbose) on failure
-      if: ${{ inputs.run_build == 'true' && failure() }}
+      if: ${{ inputs.run-build == 'true' && failure() }}
       shell: pwsh
       run: |
         Set-StrictMode -Version Latest
