@@ -13,7 +13,8 @@ description: >-
 
 inputs:
   run-build:
-    description: 'If true, runs `dotnet build -c Release --no-restore` and a verbose rebuild on failure'
+    description: >-
+      If 'true', runs `dotnet build -c Release --no-restore` and a verbose rebuild on failure
     required: false
     default: 'true'
 

@@ -58,9 +58,9 @@ jobs:
     permissions:
       contents: read
       checks: write
-      pull-requests: write # to write PR comments
+      pull-requests: write
 
-  analyze-packages:
+  analyze:
     name: 🔬 Code Analyze
     needs: precheck
     uses: ./.github/workflows/ci-analyze.yml
@@ -100,17 +100,17 @@ jobs:
     if: ${{ github.actor != 'dependabot[bot]' }}
     uses: ./.github/workflows/ci-upload-coverage.yml
     permissions:
-      contents: read       # to read commit data
-      checks: write        # to post status checks
-      pull-requests: write # to comment on PRs
+      contents: read
+      checks: write
+      pull-requests: write
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-  release-packages:
+  release:
     name: 🛳️ Release
     # Wait for all pipelines.
     needs:
-      - analyze-packages
+      - analyze
       - unit-tests
       - mutation-tests
       - pack
@@ -121,7 +121,7 @@ jobs:
       && startsWith(github.ref, 'refs/tags/v') }}
     uses: ./.github/workflows/ci-release.yml
     permissions:
-      contents: write # to create a GitHub Release and upload assets to it
+      contents: write
     with:
       version: ${{ github.ref_name }}
     secrets:

@@ -114,3 +114,4 @@ jobs:
           } else {
             "⚠️ GitVersion data not available" >> $env:GITHUB_STEP_SUMMARY
           }
+          #######################################################

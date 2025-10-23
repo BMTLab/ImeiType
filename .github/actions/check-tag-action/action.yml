@@ -11,15 +11,19 @@ description: >-
 
 inputs:
   version:
-    description: 'Version from the tag (e.g. v1.0.0 or v1.0.0-alpha)'
+    description: >-
+      Version from the tag (e.g. v1.0.0 or v1.0.0-alpha)
     required: true
   version-regex:
-    description: 'Regular expression to check the version format and filter existing tags'
+    description: >- 
+      Regular expression to check the version format and filter existing tags
     required: false
     # Format: vMAJOR.MINOR.PATCH or vMAJOR.MINOR.PATCH-PRERELEASE
-    default: '^v[0-9]+\.[0-9]+\.[0-9]+(-([0-9A-Za-z]+))?$'
+    default: >-
+      ^v[0-9]+\.[0-9]+\.[0-9]+(-([0-9A-Za-z]+))?$
   allowed-prerelease-suffix-regex:
-    description: 'Regular expression for acceptable prerelease values (e.g. "^(alpha|beta|rc)$")'
+    description: >-
+      Regular expression for acceptable prerelease values (e.g. "^(alpha|beta|rc)$")
     required: true
 
 outputs:
