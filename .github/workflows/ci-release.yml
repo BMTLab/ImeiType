@@ -82,7 +82,7 @@ jobs:
 
       - name: 🏷️ Check Tag Version
         id: check-tag-version
-        uses: ./.github/actions/check-tag-action
+        uses: ./.github/actions/check-tag-version
         with:
           version: ${{ inputs.version }}
           allowed-prerelease-suffix-regex: '^(alpha|beta|rc)$'

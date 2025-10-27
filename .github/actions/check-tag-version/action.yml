@@ -1,6 +1,6 @@
-# .github/actions/check-tag-action/action.yml
+# .github/actions/check-tag-version/action.yml
 
-name: Check Tag Action
+name: Check Tag Version
 description: >-
   Validates the tag version format and checks version ordering.
   Outputs:
