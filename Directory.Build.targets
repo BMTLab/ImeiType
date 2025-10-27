@@ -3,14 +3,29 @@
 
     <PropertyGroup>
         <VersionFile>VERSION.g.txt</VersionFile>
+        <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
+        <PackageReleaseNotesFile Condition="'$(PackageReleaseNotesFile)' == ''">
+            $(ArtifactsPath)/ReleaseNotes.md
+        </PackageReleaseNotesFile>
     </PropertyGroup>
 
     <Target Name="_StartBuild" BeforeTargets="Build">
         <Message Text="------- $(AssemblyName):$(Version) is building" Importance="High" />
     </Target>
 
-    <Target Name="_EndBuild" AfterTargets="_StartBuild">
+    <Target Name="_EndBuild" AfterTargets="Build">
         <WriteLinesToFile File="$(VersionFile)" Lines="$(Version)" Overwrite="true" />
+    </Target>
+
+    <Target Name="_SetPackageReleaseNotes"
+            BeforeTargets="Pack"
+            Condition="Exists('$(PackageReleaseNotesFile)')">
+        <ReadLinesFromFile File="$(PackageReleaseNotesFile)">
+            <Output TaskParameter="Lines" ItemName="_ReleaseNotesLines"/>
+        </ReadLinesFromFile>
+        <PropertyGroup>
+            <PackageReleaseNotes>@(_ReleaseNotesLines, '%0A')</PackageReleaseNotes>
+        </PropertyGroup>
     </Target>
 
     <ItemGroup>

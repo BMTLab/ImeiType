@@ -26,9 +26,177 @@ jobs:
         uses: actions/checkout@v5.0.0
         with:
           fetch-depth: 0
+          fetch-tags: true
 
       - name: 🔧 Setup project
         uses: ./.github/actions/setup-project
+
+      # Build a short markdown changelog since the previous version-like tag.
+      - name: 📝 Generate Release Notes
+        env:
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          CURRENT_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+        run: |
+          set -o errexit -o errtrace -o nounset -o pipefail
+          shopt -s nullglob
+
+          : "${REPO_URL:?is not set}"; : "${HEAD_SHA:?is not set}"
+
+          artifacts_dir='artifacts'
+          release_notes_file="${artifacts_dir}/ReleaseNotes.md"
+          max_release_notes_lines=50
+
+          #######################################
+          # Ensures `git tag` reflects remote tags.
+          #
+          # Behavior:
+          #   - Detects shallow clones and adds --unshallow when necessary.
+          #   - Tolerates fetch failures (continues with local refs, emits a warning).
+          # Returns:
+          #   0 - Always (non-fatal warnings possible).
+          #######################################
+          function ensure_git_tags_available() {
+            echo '::group::Fetch tags (ensure full history)'
+
+            local shallow_state=''
+            if git rev-parse --is-shallow-repository >/dev/null 2>&1; then
+              shallow_state="$(git rev-parse --is-shallow-repository)"
+            fi
+
+            local -a fetch_args=(--tags --prune-tags)
+            if [[ "$shallow_state" == true ]]; then
+              fetch_args+=(--unshallow)
+            fi
+
+            if ! git fetch "${fetch_args[@]}"; then
+              echo '::warning title=Fetch tags::Failed to refresh tags; continuing with existing refs'
+            fi
+
+            echo '::endgroup::'
+          }
+
+          #######################################
+          # Resolves the previous version-like tag (e.g., v1.2.3 or v1.2.3-rc),
+          # excluding the current tag (when running on a tag push).
+          #
+          # Outputs (by reference via nameref):
+          #   1: _tag (string) - Receives the tag or empty if not found.
+          # Returns:
+          #   0 - Always.
+          #######################################
+          function resolve_previous_tag() {
+            local -n _tag="$1"
+            local tag=''
+
+            tag="$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*' ${CURRENT_TAG:+--exclude "$CURRENT_TAG"} 2>/dev/null || true)"
+            if [[ -z "$tag" ]]; then
+              tag="$(git describe --tags --abbrev=0 ${CURRENT_TAG:+--exclude "$CURRENT_TAG"} 2>/dev/null || true)"
+            fi
+            _tag="$tag"
+          }
+
+          #######################################
+          # Collects commit subjects into an array (no merges), optionally for a RANGE.
+          #
+          # Arguments (read-only):
+          #   1: range (string)       - e.g., 'v1.2.3..HEAD' or empty for full history.
+          # Outputs (by reference via nameref):
+          #   2: _lines (array)       - Receives up to max_release_notes_lines formatted lines.
+          # Returns:
+          #   0 - Always.
+          #######################################
+          function collect_commits() {
+            local -r range="$1"
+            local -n _lines="$2"
+
+            mapfile -t _lines < <(
+              git log --no-merges --pretty='- %s (%h)' ${range:+$range} \
+                | head -n "$max_release_notes_lines" \
+              || true
+            )
+          }
+
+          #######################################
+          # Writes markdown release notes file.
+          #
+          # Arguments (read-only):
+          #   1: release_notes_file (string)    - Destination path.
+          #   2: prev_tag (string)              - Previous version tag or empty.
+          #   3: _lines (array, ref)            - Commit lines to write.
+          # Returns:
+          #   0 - Always.
+          #######################################
+          function write_notes() {
+            local -r release_notes_file="$1"
+            local -r prev_tag="$2"
+            local -n _lines="$3"
+
+            {
+              echo '### Changes'
+              echo
+              if [[ -n "$prev_tag" ]]; then
+                echo "_Changes since ${prev_tag}:_"
+                echo
+              fi
+
+              if ((${#_lines[@]} > 0)); then
+                printf '%s\n' "${_lines[@]}"
+              else
+                echo '- Initial release'
+              fi
+
+              echo
+              if [[ -n "$prev_tag" ]]; then
+                local -r right_ref="${CURRENT_TAG:-$HEAD_SHA}"
+                echo "Full changelog: ${REPO_URL}/compare/${prev_tag}...${right_ref}"
+              fi
+            } > "$release_notes_file"
+          }
+
+          echo '::group::Prepare'
+          mkdir -p "$artifacts_dir"
+          ensure_git_tags_available
+
+          echo "Artifacts dir: $artifacts_dir"
+          echo "Output file: $release_notes_file"
+          echo "Current tag (if any): ${CURRENT_TAG:-'(none)'}"
+          echo '::endgroup::'
+
+          prev_tag=''
+          resolve_previous_tag prev_tag
+
+          range=''
+          if [[ -n "$prev_tag" ]]; then
+            range="${prev_tag}..HEAD"
+          fi
+
+          commits=()
+          collect_commits "$range" commits
+          write_notes "$release_notes_file" "$prev_tag" commits
+
+          # Expose the file path to later steps (MSBuild will pick it via a property):
+          printf 'PACKAGE_RELEASE_NOTES_FILE=%s\n' "$release_notes_file" >> "$GITHUB_ENV"
+
+          # Brief preview into the job summary:
+          {
+            echo '## 📝 Release Notes (preview)'
+            echo
+            if [[ -n "$prev_tag" ]]; then
+              echo "_Changes since ${prev_tag}_"
+            else
+              echo '_Initial release (no previous tag found)_'
+            fi
+            echo
+            if ((${#commits[@]} > 0)); then
+              printf '%s\n' "${commits[@]}"
+            else
+              echo '- (no commits captured)'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "::notice title=Release notes::Wrote ${release_notes_file} with ${#commits[@]} line(s)"
+          #######################################################
 
       # Pack all projects that define pack targets in the repo.
       - name: 📦 Pack Packages
@@ -41,7 +209,8 @@ jobs:
               -c Release \
               --no-build \
               --include-symbols \
-              --include-source
+              --include-source \
+              /p:PackageReleaseNotesFile="${PACKAGE_RELEASE_NOTES_FILE:-}"
           }
           echo '::endgroup::'
           #######################################################
