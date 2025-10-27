@@ -26,11 +26,11 @@
         <Copyright>Copyright $(_Company) © $([System.DateTime]::Now.Date.Year)</Copyright>
         <RepositoryType>git</RepositoryType>
         <RepositoryName>$(_Name)</RepositoryName>
-        <PackageDescription>$(_Description)</PackageDescription>
+        <PackageDescription>$(Description)</PackageDescription>
         <RepositoryUrl>https://github.com/$(_Company)/$(RepositoryName)</RepositoryUrl>
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
         <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
-        <PackageId Condition="'$(PackageId)' == ''">$(AssemblyInfo)</PackageId>
+        <PackageId Condition="'$(PackageId)' == ''">$(AssemblyName)</PackageId>
         <PackageTags>imei mobile equipment identity type</PackageTags>
         <PackageIcon>icon.png</PackageIcon>
         <PackageReadmeFile>README.md</PackageReadmeFile>
