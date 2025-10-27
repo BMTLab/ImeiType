@@ -80,7 +80,7 @@
     </PropertyGroup>
 
     <ItemGroup Label="CommonReferences">
-        <SourceRoot Include="$(MSBuildThisFileDirectory)/" />
+        <SourceRoot Include="$(MSBuildThisFileDirectory)/"/>
         <PackageReference Include="Microsoft.SourceLink.GitHub">
             <PrivateAssets>All</PrivateAssets>
         </PackageReference>
@@ -99,16 +99,16 @@
     </ItemGroup>
 
     <ItemGroup Label="GlobalUsingsConfig">
-        <Using Include="System.Diagnostics" />
-        <Using Include="System.Diagnostics.CodeAnalysis" />
-        <Using Include="System.Runtime.InteropServices" />
+        <Using Include="System.Diagnostics"/>
+        <Using Include="System.Diagnostics.CodeAnalysis"/>
+        <Using Include="System.Runtime.InteropServices"/>
     </ItemGroup>
 
     <ItemGroup Label="AdditionalItemsConfig">
-        <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="" />
-        <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="" />
-        <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="" />
-        <None Include="$(MSBuildThisFileDirectory)SECURITY.md" Pack="true" PackagePath="" />
+        <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath=""/>
+        <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath=""/>
+        <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath=""/>
+        <None Include="$(MSBuildThisFileDirectory)SECURITY.md" Pack="true" PackagePath=""/>
     </ItemGroup>
 
     <ItemGroup Label="EditorConfig">

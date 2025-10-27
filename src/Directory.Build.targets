@@ -2,11 +2,12 @@
 <Project>
 
     <!-- Load common targets for all projects from the repository root -->
-    <Import Project="$([MSBuild]::GetPathOfFileAbove(Directory.Build.targets, $(MSBuildThisFileDirectory)..))" />
+    <Import Project="$([MSBuild]::GetPathOfFileAbove(Directory.Build.targets, $(MSBuildThisFileDirectory)..))"/>
 
     <!-- Task that makes internal members of a main project visible to test projects -->
-    <Target Name="_InternalLinking" Condition="!$(MSBuildProjectName.Contains('Test')) And !$(MSBuildProjectName.Contains('Sample'))" BeforeTargets="BeforeCompile">
-
+    <Target Name="_InternalLinking"
+            BeforeTargets="BeforeCompile"
+            Condition="!$(MSBuildProjectName.Contains('Test')) And !$(MSBuildProjectName.Contains('Sample'))">
         <PropertyGroup>
             <TestNamespace>Tests</TestNamespace>
             <EmbedUntrackedSources>true</EmbedUntrackedSources>
@@ -16,12 +17,12 @@
         </PropertyGroup>
 
         <ItemGroup>
-            <EmbeddedFiles Include="$(GeneratedAssemblyInfoFile)" />
+            <EmbeddedFiles Include="$(GeneratedAssemblyInfoFile)"/>
         </ItemGroup>
 
         <ItemGroup>
-            <InternalsVisibleTo Include="$(AssemblyName).$(TestNamespace).Unit" />
-            <InternalsVisibleTo Include="$(AssemblyName).$(TestNamespace).Benchmarks" />
+            <InternalsVisibleTo Include="$(AssemblyName).$(TestNamespace).Unit"/>
+            <InternalsVisibleTo Include="$(AssemblyName).$(TestNamespace).Benchmarks"/>
         </ItemGroup>
     </Target>
 </Project>

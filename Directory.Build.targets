@@ -4,31 +4,32 @@
     <PropertyGroup>
         <VersionFile>VERSION.g.txt</VersionFile>
         <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
-        <PackageReleaseNotesFile Condition="'$(PackageReleaseNotesFile)' == ''">
+        <PackageReleaseNotesFile Condition="'$(PackageReleaseNotesFile)'==''">
             $(ArtifactsPath)/package/release/ReleaseNotes.md
         </PackageReleaseNotesFile>
     </PropertyGroup>
 
     <Target Name="_StartBuild" BeforeTargets="Build">
-        <Message Text="------- $(AssemblyName):$(Version) is building" Importance="High" />
+        <Message Text="------- $(AssemblyName):$(Version) is building" Importance="High"/>
     </Target>
 
     <Target Name="_EndBuild" AfterTargets="Build">
-        <WriteLinesToFile File="$(VersionFile)" Lines="$(Version)" Overwrite="true" />
+        <WriteLinesToFile File="$(VersionFile)" Lines="$(Version)" Overwrite="true"/>
     </Target>
 
     <Target Name="_SetPackageReleaseNotes"
             BeforeTargets="GenerateNuspec"
             Condition="'$(Configuration)'=='Release' And Exists('$(PackageReleaseNotesFile)')">
         <ReadLinesFromFile File="$(PackageReleaseNotesFile)">
-            <Output TaskParameter="Lines" ItemName="_ReleaseNotesLines" />
+            <Output TaskParameter="Lines" ItemName="_ReleaseNotesLines"/>
         </ReadLinesFromFile>
         <PropertyGroup>
             <!-- Convert an array of strings to text with \n -->
             <PackageReleaseNotes>@(_ReleaseNotesLines, '%0A')</PackageReleaseNotes>
         </PropertyGroup>
-        <Message Text="------- Release notes file: $(PackageReleaseNotesFile)" Importance="High" />
-        <Message Text="------- PackageReleaseNotes length: $([System.String]::Copy('$(PackageReleaseNotes)').Length)" Importance="Low" />
+        <Message Text="------- Release notes file: $(PackageReleaseNotesFile)" Importance="High"/>
+        <Message Text="------- PackageReleaseNotes length: $([System.String]::Copy('$(PackageReleaseNotes)').Length)"
+                 Importance="Low"/>
     </Target>
 
     <ItemGroup>

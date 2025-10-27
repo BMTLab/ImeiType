@@ -2,13 +2,13 @@
 <Project>
 
     <!-- Load common properties for all projects from the repository root -->
-    <Import Project="$([MSBuild]::GetPathOfFileAbove(Directory.Build.props, $(MSBuildThisFileDirectory)..))" />
+    <Import Project="$([MSBuild]::GetPathOfFileAbove(Directory.Build.props, $(MSBuildThisFileDirectory)..))"/>
 
     <PropertyGroup Label="ProjectTypeConfig">
         <IsTestProject>$(MSBuildProjectName.Contains('Test'))</IsTestProject>
         <IsSampleProject>$(MSBuildProjectName.Contains('Sample'))</IsSampleProject>
         <IsPackable>false</IsPackable>
-        <IsPackable Condition="'$(IsTestProject)'!='True' And '$(IsSampleProject)'!='True'">true</IsPackable>
+        <IsPackable Condition="'$(IsTestProject)'!='true' And '$(IsSampleProject)'!='true'">true</IsPackable>
     </PropertyGroup>
 
     <!--
@@ -27,18 +27,18 @@
             </PropertyGroup>
 
             <ItemGroup Label="CommonTestReferences">
-                <PackageReference Include="FluentAssertions" />
-                <PackageReference Include="Microsoft.NET.Test.Sdk" />
-                <PackageReference Include="xunit" />
-                <PackageReference Include="xunit.runner.visualstudio" />
-                <PackageReference Include="coverlet.collector" />
-                <PackageReference Include="coverlet.msbuild" />
-                <PackageReference Include="GitHubActionsTestLogger" />
+                <PackageReference Include="FluentAssertions"/>
+                <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+                <PackageReference Include="xunit"/>
+                <PackageReference Include="xunit.runner.visualstudio"/>
+                <PackageReference Include="coverlet.collector"/>
+                <PackageReference Include="coverlet.msbuild"/>
+                <PackageReference Include="GitHubActionsTestLogger"/>
             </ItemGroup>
 
             <ItemGroup Label="GlobalUsingsConfig">
-                <Using Include="Xunit" />
-                <Using Include="FluentAssertions" />
+                <Using Include="Xunit"/>
+                <Using Include="FluentAssertions"/>
             </ItemGroup>
         </When>
         <When Condition="'$(IsSampleProject)'=='true'">
