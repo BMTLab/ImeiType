@@ -7,7 +7,7 @@
     <PropertyGroup Label="ProjectTypeConfig">
         <IsTestProject>$(MSBuildProjectName.Contains('Test'))</IsTestProject>
         <IsSampleProject>$(MSBuildProjectName.Contains('Sample'))</IsSampleProject>
-        <IsPackable>fase</IsPackable>
+        <IsPackable>false</IsPackable>
         <IsPackable Condition="'$(IsTestProject)'!='True' And '$(IsSampleProject)'!='True'">true</IsPackable>
     </PropertyGroup>
 
