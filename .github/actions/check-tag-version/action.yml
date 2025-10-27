@@ -17,20 +17,20 @@ inputs:
   version-regex:
     description: |-
       Regular expression to check the version format and filter existing tags.
-      Default supports SemVer core "vMAJOR.MINOR.PATCH" with optional dotted prerelease:
+      POSIX ERE compatible. Supports SemVer core "vMAJOR.MINOR.PATCH" with optional dotted prerelease:
       "vMAJOR.MINOR.PATCH-PRERELEASE(.MORE)*".
-      Capturing groups:
-        - Group #1: full prerelease part without the leading dash (e.g. "alpha.1")
-        - Group #2: first prerelease identifier (e.g. "alpha")
+      Capturing groups (for the DEFAULT regex):
+        - Group #2: full prerelease part without the leading dash (e.g. "alpha.1")
+        - Group #3: first prerelease identifier (e.g. "alpha")
     required: false
     # Format: vMAJOR.MINOR.PATCH or vMAJOR.MINOR.PATCH-PRERELEASE(.MORE)*
-    # Group #1 = full prerelease ("alpha.1"), Group #2 = first identifier ("alpha")
+    # Group #2 = full prerelease ("alpha.1"), Group #3 = first identifier ("alpha")
     default: >-
-      ^v[0-9]+\.[0-9]+\.[0-9]+(?:-(([0-9A-Za-z]+)(?:\.[0-9A-Za-z-]+)*))?$
+      ^v[0-9]+\.[0-9]+\.[0-9]+(-(([0-9A-Za-z]+)(\.[0-9A-Za-z-]+)*))?$
   allowed-prerelease-suffix-regex:
     description: >-
       Regular expression for acceptable prerelease values (e.g. "^(alpha|beta|rc)$").
-      This is matched against the FIRST prerelease identifier (capturing group #2)
+      This is matched against the FIRST prerelease identifier (capturing group #3)
     required: true
 
 outputs:
@@ -75,8 +75,8 @@ runs:
         # Validates the version string against a regex and evaluates prerelease rules.
         #
         # Notes (for the DEFAULT regex):
-        #   - Capturing group #1 = full prerelease without the leading dash (e.g., "alpha.1").
-        #   - Capturing group #2 = first prerelease identifier (e.g., "alpha"),
+        #   - Capturing group #2 = full prerelease without the leading dash (e.g., "alpha.1").
+        #   - Capturing group #3 = first prerelease identifier (e.g., "alpha"),
         #     which is used to validate against allowed_prerelease_suffix_regex.
         #
         # Arguments (read-only):
@@ -102,13 +102,13 @@ runs:
 
           echo '::group::Validate format & prerelease'
           if [[ "$version" =~ $version_regex ]]; then
-            # If the regex defines a prerelease capturing group (#2 = first identifier), use it:
+            # Group #2 = full prerelease; Group #3 = first identifier:
             if [[ -z "${BASH_REMATCH[2]:-}" ]]; then
               echo "::notice title=Format OK::'$version' matches regex and has no prerelease"
               _is_publishable=true
             else
               _is_prerelease=true
-              local -r prerelease_token="${BASH_REMATCH[2]}" # e.g., "alpha"
+              local -r prerelease_token="${BASH_REMATCH[3]}" # e.g., "alpha"
               echo "::notice title=Prerelease detected::'${prerelease_token}'"
 
               if [[ "$prerelease_token" =~ $allowed_prerelease_suffix_regex ]]; then
@@ -191,7 +191,7 @@ runs:
         # Loads tags that look like versions into an array, excluding the current one.
         #
         # Arguments (read-only):
-        #   1: version_regex         - Regex to filter version-like tags.
+        #   1: version_regex         - Regex to filter version-like tags (POSIX ERE).
         #   2: excluded_exact_tag    - Tag to exclude from the list (exact match).
         # Outputs (by reference, via nameref):
         #   3: _tags (array)         - Filled with matching tag names.
@@ -233,8 +233,7 @@ runs:
           local -n _cmp="$3"
 
           if [[ "$version_a" == "$version_b" ]]; then
-            _cmp=0
-            return 0
+            _cmp=0; return 0
           fi
 
           # `sort -V` does version-aware ordering; head is the smaller, tail is the larger:
