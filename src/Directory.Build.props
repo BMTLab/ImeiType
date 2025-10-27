@@ -52,6 +52,7 @@
         <Otherwise>
             <PropertyGroup Label="FrameworkConfig">
                 <TargetFrameworks>net9.0;net8.0;net7.0;net6.0;netstandard2.1</TargetFrameworks>
+                <GenerateDocumentationFile>true</GenerateDocumentationFile>
                 <WarningLevel>4</WarningLevel>
                 <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
             </PropertyGroup>
