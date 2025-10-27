@@ -1,0 +1,278 @@
+# .github/workflows/ci-mutation-tests.yml
+
+# Runs mutation tests with Stryker.NET, uploads HTML/Markdown reports,
+# enforces a mutation score gate, and writes a Summary section.
+
+name: Mutation Tests CI
+
+on:
+  workflow_call:
+
+jobs:
+  mutation-tests:
+    name: Mutation Testing (Stryker)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      checks: write
+
+    env:
+      ### Directories
+      MUTATION_REPORT: mutation-report
+      ### Thresholds
+      MIN_MUTATION_TESTS_SCORE: ${{ vars.MIN_MUTATION_TESTS_SCORE || '50' }}
+      ### Exit Codes
+      ERR_NO_LEGACY_SOLUTION: 13
+      ERR_MUTATION_GATE_FAIL: 14
+      STRYKER_EXIT_BELOW_THRESHOLD: 2
+
+    steps:
+      - name: ⚙️ Checkout
+        uses: actions/checkout@v5.0.0
+        with:
+          fetch-depth: 0
+
+      # Shared setup: checkout (again inside), multi-SDKs, tools cache, restore (locked),
+      # MSBuild matcher, and a Release build used by Stryker.
+      - name: 🔧 Setup project
+        uses: ./.github/actions/setup-project
+
+      # Run Stryker with solution switching logic (./*.sln.old → .sln),
+      # capture outputs for artifacts & summary, and treat <break-at as a soft failure here.
+      - name: 🧬 Mutation Testing (Stryker)
+        id: stryker
+        run: |
+          set -o errexit -o nounset -o pipefail
+
+          #######################################
+          # Finds a single legacy solution file './*.sln.old' in repo root.
+          #
+          # Outputs (by reference, via nameref):
+          #   1: _sln_old                     - Path to legacy solution.
+          # Returns:
+          #   0                               - Found.
+          #   $ERR_NO_LEGACY_SOLUTION         - Not found.
+          #######################################
+          function find_legacy_solution() {
+            local -n _sln_old="$1"
+            _sln_old=''
+
+            shopt -s nullglob
+            local -ar candidates=(./*.sln.old)
+            if [[ ${#candidates[@]} -eq 0 ]]; then
+              return "$ERR_NO_LEGACY_SOLUTION"
+            fi
+
+            _sln_old="${candidates[0]}"
+            return 0
+          }
+
+          #######################################
+          # Activates legacy solution: backs up existing *.sln (if any) and renames *.sln.old -> *.sln.
+          #
+          # Arguments (read-only):
+          #   1: sln_old                      - Path to '*.sln.old'.
+          # Outputs (by reference, via nameref):
+          #   2: _sln                         - Activated '*.sln' path.
+          #   3: _backup                      - Backup path of pre-existing '*.sln' (if any), else empty.
+          # Returns:
+          #   0 - Always.
+          #######################################
+          function activate_legacy_solution() {
+            local -r sln_old="$1"
+            local -n _sln="$2"
+            local -n _backup="$3"
+
+            _sln="${sln_old%.old}"
+            _backup=''
+
+            if [[ -f "$_sln" ]]; then
+              _backup="${_sln}.bak-ci-$$"
+              mv -f "$_sln" "$_backup"
+            fi
+
+            mv -f "$sln_old" "$_sln"
+          }
+
+          #######################################
+          # Reverts activation done by activate_legacy_solution().
+          #
+          # Arguments (read-only):
+          #   1: sln_old                      - Path to '*.sln.old' (may not exist yet).
+          #   2: sln                          - Active '*.sln' path (if exists).
+          #   3: backup                       - Backup path to restore (if exists).
+          # Returns:
+          #   0 - Always (idempotent).
+          #######################################
+          function revert_solution_activation() {
+            local -r sln_old="$1"
+            local -r sln="$2"
+            local -r backup="$3"
+
+            # Put legacy file back if we had activated it:
+            if [[ -n "$sln" && -f "$sln" && -n "$sln_old" && ! -f "$sln_old" ]]; then
+              mv -f "$sln" "$sln_old" || true
+            fi
+
+            # Restore original *.sln if a backup exists:
+            if [[ -n "$backup" && -f "$backup" ]]; then
+              mv -f "$backup" "$sln" || true
+            fi
+          }
+
+          #######################################
+          # Runs Stryker and captures its exit code without failing the shell.
+          #
+          # Outputs (by reference, via nameref):
+          #   1: _rc                          - Exit code returned by 'dotnet stryker'.
+          # Returns:
+          #   0 - Always.
+          #######################################
+          function run_stryker() {
+            local -n _rc=$1
+            set +e
+            dotnet stryker \
+              --break-at "$MIN_MUTATION_TESTS_SCORE" \
+              --mutation-level 'Advanced' \
+              --reporter 'Markdown' \
+              --reporter 'Html' \
+              --output "$MUTATION_REPORT"
+            _rc=$?
+            set -e
+          }
+
+          #######################################
+          # Resolves Stryker report paths if present.
+          #
+          # Arguments (read-only):
+          #   1: base_dir                     - Stryker output base (e.g., "$MUTATION_REPORT").
+          # Outputs (by reference, via nameref):
+          #   2: _report_dir                  - "<base_dir>/reports" if exists else empty.
+          #   3: _report_md                   - "<_report_dir>/mutation-report.md" if exists else empty.
+          # Returns:
+          #   0 - Always.
+          #######################################
+          function resolve_stryker_reports() {
+            local -r base_dir="$1"
+            local -n _report_dir="$2"
+            local -n _report_md="$3"
+
+            _report_dir="${base_dir}/reports"
+            _report_md="${_report_dir}/mutation-report.md"
+
+            if [[ ! -f "$_report_md" ]]; then
+              _report_dir=''
+              _report_md=''
+            fi
+          }
+
+          sln_old=''
+          sln=''
+          backup=''
+
+          echo '::group::Prepare solution'
+          if ! find_legacy_solution sln_old; then
+            rc="$ERR_NO_LEGACY_SOLUTION"
+            echo "::error title=Stryker::No '*.sln.old' found in repository root"
+            {
+              echo 'activated_sln='
+              echo 'report_dir='
+              echo 'report_md='
+              echo "exit_code=${rc}"
+            } >> "$GITHUB_OUTPUT"
+            echo '::endgroup::'
+            exit "$rc"
+          fi
+
+          activate_legacy_solution "$sln_old" sln backup
+          echo "Activated solution: $(basename "$sln")"
+          echo '::endgroup::'
+
+          # Always revert changes at the end (success or failure).
+          function __cleanup() { revert_solution_activation "$sln_old" "$sln" "$backup"; }
+          trap __cleanup EXIT
+          
+          # Fresh output directory:
+          rm -rf "$MUTATION_REPORT"
+
+          echo '::group::dotnet stryker'
+          rc=0
+          run_stryker rc
+          echo "Stryker exit code: $rc"
+          echo '::endgroup::'
+          
+          report_dir=''
+          report_md=''
+          resolve_stryker_reports "$MUTATION_REPORT" report_dir report_md
+          if [[ -n "$report_md" ]]; then
+            echo "::notice title=Stryker::${report_md}"
+          else
+            echo "::warning title=Stryker::Markdown report not found at ${MUTATION_REPORT}/reports/mutation-report.md"
+          fi
+
+          # Export outputs for downstream steps (artifacts + summary + gate):
+          {
+            echo "activated_sln=$(basename "$sln")"
+            echo "report_dir=$report_dir"
+            echo "report_md=$report_md"
+            echo "exit_code=$rc"
+          } >> "$GITHUB_OUTPUT"
+
+          __cleanup
+
+          # Allow only 0 (OK) and $STRYKER_EXIT_BELOW_THRESHOLD (score < --break-at) to pass this step:
+          if [[ $rc -eq 0 || $rc -eq $STRYKER_EXIT_BELOW_THRESHOLD ]]; then
+            exit 0
+          fi
+
+          echo "::error title=Stryker::Unexpected exit code=${rc} (not a threshold failure)." \
+               'See logs above'
+
+          exit "$rc"
+          #######################################################
+
+      # Upload HTML/Markdown reports if present.
+      - name: 📤 Upload Stryker Artifacts
+        if: >-
+          ${{ always()
+          && steps.stryker.outputs.report_dir != '' }}
+        uses: actions/upload-artifact@v5.0.0
+        with:
+          name: ${{ env.MUTATION_REPORT }}-${{ github.sha }}
+          path: ${{ steps.stryker.outputs.report_dir }}/**
+          if-no-files-found: warn
+          retention-days: 30
+
+      # Enforce the mutation score gate (fail only when below threshold).
+      - name: 🚦 Enforce Mutation Gate
+        if: ${{ steps.stryker.outputs.exit_code == env.STRYKER_EXIT_BELOW_THRESHOLD }}
+        run: |
+          set -o errexit -o nounset -o pipefail  
+
+          echo "::error title=Stryker::Mutation gate failed, the score below ${MIN_MUTATION_TESTS_SCORE}%" \
+               '(exit code=${{ steps.stryker.outputs.exit_code }})'
+
+          exit "$ERR_MUTATION_GATE_FAIL"
+          #######################################################
+
+      - name: 📊 Summary - Mutation Testing
+        if: ${{ always() }}
+        run: |
+          set -o errexit -o nounset -o pipefail
+
+          md='${{ steps.stryker.outputs.report_md }}'
+          exit_code='${{ steps.stryker.outputs.exit_code }}'
+          {
+            echo '## 🧬 Mutation Testing (Stryker)'
+            echo "_Exit code:_ **${exit_code}**"
+            echo
+            if [[ -n "$md" && -f "$md" ]]; then
+              tail -n +2 "$md" \
+                | tr -d '#' \
+                | sed -E 's/\\\//\//g'
+            else
+              echo '⚠️ Stryker Markdown report not found'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          #######################################################

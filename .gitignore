@@ -67,8 +67,9 @@ bld/
 # Visual Studio 2017 auto generated files
 Generated\ Files/
 
-# MSTest test Results
+# Test Results
 [Tt]est[Rr]esult*/
+[Tt]est-[Rr]esult*/
 [Bb]uild[Ll]og.*
 
 # NUnit
@@ -171,6 +172,7 @@ coverage*[.json, .xml, .info]
 # Visual Studio code coverage results
 *.coverage
 *.coveragexml
+coverage-*/
 
 # NCrunch
 _NCrunch_*
@@ -378,7 +380,6 @@ MigrationBackup/
 .JustCode
 /src/Monitor/Server/welding-server.env
 
-### VisualStudio Patch ###
-# Additional files built by Visual Studio
+dotnet-analyzes
 
 # End

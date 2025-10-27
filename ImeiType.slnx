@@ -10,7 +10,6 @@
     <File Path=".gitignore" />
   </Folder>
   <Folder Name="/scripts/">
-    <File Path="scripts\clean.sh" />
     <File Path="scripts\clean.ps1" />
   </Folder>
   <Folder Name="/src/">

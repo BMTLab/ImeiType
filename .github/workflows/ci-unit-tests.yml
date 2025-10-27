@@ -1,0 +1,258 @@
+# .github/workflows/ci-unit-tests.yml
+
+# Runs unit tests with XPlat coverage, merges reports, enforces a coverage gate,
+# uploads coverage artifacts, and writes a detailed Summary section.
+
+name: Unit Tests CI
+
+on:
+  workflow_call:
+
+jobs:
+  unit-tests:
+    name: Unit & Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      checks: write
+
+    env:
+      ### Directories
+      TEST_RESULTS: test-results
+      COVERAGE_REPORT: coverage-report
+      ### Thresholds
+      MIN_LINE_COVERAGE: ${{ vars.MIN_LINE_COVERAGE || '50' }}
+      ### Exit Codes
+      ERR_COVERAGE_GATE_FAIL: 12
+
+    steps:
+      # Explicit checkout with full history.
+      # Full history is for tools that read versioning or tags.
+      - name: ⚙️ Checkout
+        uses: actions/checkout@v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: 🔧 Setup project
+        uses: ./.github/actions/setup-project
+
+      - name: 🧰 Ensure ReportGenerator tool
+        # Try update first to keep the global tool fresh; fallback to install.
+        run: >-
+          dotnet tool update -g dotnet-reportgenerator-globaltool
+          || dotnet tool install -g dotnet-reportgenerator-globaltool
+
+      - name: 🧪 Test + Coverage (via XPlat Cobertura)
+        run: |
+          set -o errexit -o nounset -o pipefail
+          echo '## 🧪 Test Results' >> "$GITHUB_STEP_SUMMARY"
+
+          echo '::group::dotnet test'
+          # Note: the space after the last double dash (--) is intentional
+          dotnet test -c Release --no-build -v minimal \
+            --results-directory "./${TEST_RESULTS}" \
+            --collect:'XPlat Code Coverage;Format=cobertura' \
+            --logger 'GitHubActions;annotations.titleFormat=@test [@framework];summary.includePassedTests=true' \
+            -- \
+            RunConfiguration.CollectSourceInformation=true
+          echo '::endgroup::'
+          #######################################################
+
+      - name: 🤝 Merge Coverage Reports
+        # Runs even if tests failed; if there are no coverage files, create target dir and warn.
+        if: ${{ always() }}
+        run: |
+          set -o errexit -o nounset -o pipefail
+          shopt -s globstar nullglob
+
+          files=("${TEST_RESULTS}"/**/coverage.cobertura.xml)
+          echo '::group::reportgenerator (merge)'
+          echo "Coverage files detected, count=${#files[@]}"
+          if ((${#files[@]})); then
+            reportgenerator \
+              -reports:"${TEST_RESULTS}/**/coverage.cobertura.xml" \
+              -targetdir:"$COVERAGE_REPORT" \
+              -reporttypes:'Cobertura;HtmlInline_AzurePipelines_Dark;MarkdownSummaryGithub;TextSummary'
+          else
+            echo "::warning title=Coverage::No coverage.cobertura.xml files found under $TEST_RESULTS"
+            mkdir -p "$COVERAGE_REPORT"
+          fi
+          echo '::endgroup::'
+          #######################################################
+
+      - name: 🧮 Evaluate Coverage Gate
+        id: coverage-eval
+        # Non-failing evaluation step that computes % and threshold compliance.
+        # Results are written to step outputs for use by both the summary and the enforcement step.
+        if: ${{ always() }}
+        run: |
+          set -o errexit -o nounset -o pipefail
+
+          #######################################
+          # Parses Cobertura.xml and extracts line coverage (%).
+          #
+          # Arguments (read-only):
+          #   1: coverage_path                - Path to Cobertura.xml.
+          # Outputs (by reference, via nameref):
+          #   2: _pct                         - Line coverage percent with 2 decimals (string), e.g. "78.34".
+          #   3: _found                       - 'true' if file exists, else 'false'.
+          #   4: _has_rate_attr               - 'true' if line-rate attr was found, else 'false'.
+          # Returns:
+          #   0 - Always.
+          #######################################
+          function parse_cobertura_line_rate() {
+            local -r coverage_path="$1"
+            local -n _pct="$2"
+            local -n _found="$3"
+            local -n _has_rate_attr="$4"
+
+            _pct='0.00'
+            _found=false
+            _has_rate_attr=false
+
+            if [[ -f "$coverage_path" ]]; then
+              _found=true
+              local rate=''
+              rate="$(grep -oP '(?<=line-rate=")[0-9.]+' "$coverage_path" | head -n 1 || true)"
+              if [[ -n "$rate" ]]; then
+                _pct="$(awk -v r="$rate" 'BEGIN{printf "%.2f", r*100}')"
+                _has_rate_attr=true
+              fi
+            fi
+          }
+
+          #######################################
+          # Compares coverage vs threshold.
+          #
+          # Arguments (read-only):
+          #   1: pct                          - Coverage percent as string (e.g. "78.34").
+          #   2: min_threshold                - Minimal acceptable percent (integer/number string).
+          # Outputs (by reference, via nameref):
+          #   3: _meets                       - 'true' if pct >= min_threshold, else 'false'.
+          # Returns:
+          #   0 - Always.
+          #######################################
+          function coverage_meets_threshold() {
+            local -r pct="$1"
+            local -r min_threshold="$2"
+            local -n _meets="$3"
+
+            if awk -v a="$pct" -v b="$min_threshold" 'BEGIN{exit !(a>=b)}'; then
+              _meets=true
+            else
+              _meets=false
+            fi
+          }
+
+          #######################################
+          # Writes step outputs to $GITHUB_OUTPUT.
+          #
+          # Arguments (read-only):
+          #   1: found                        - 'true' / 'false'
+          #   2: pct                          - Percent string "NN.NN"
+          #   3: meets                        - 'true' / 'false'
+          #   4: reason                       - Diagnostic reason string
+          # Returns:
+          #   0 - Always.
+          #######################################
+          function write_gate_outputs() {
+            local -r found="$1"
+            local -r pct="$2"
+            local -r meets="$3"
+            local -r reason="$4"
+            {
+              echo "found=${found}"
+              echo "pct=${pct}"
+              echo "meets=${meets}"
+              echo "reason=${reason}"
+            } >> "$GITHUB_OUTPUT"
+          }
+
+          cov_path="${COVERAGE_REPORT}/Cobertura.xml"
+          pct='0.00'
+          found=false
+          has_rate=false
+          meets=false
+          reason='report-not-found'
+
+          parse_cobertura_line_rate "$cov_path" pct found has_rate
+
+          if [[ "$found" == true ]]; then
+            if [[ "$has_rate" == true ]]; then
+              min="${MIN_LINE_COVERAGE:-0}"
+              coverage_meets_threshold "$pct" "$min" meets
+              reason=$([[ "$meets" == true ]] && echo 'ok' || echo 'below-threshold')
+              echo "::notice title=Coverage parsed::line-rate=${pct}% min=${min}%"
+            else
+              reason='line-rate-missing'
+            fi
+          fi
+
+          # Export output:
+          write_gate_outputs "$found" "$pct" "$meets" "$reason"
+
+          # Log results:
+          case "$reason" in
+            ok)
+              echo "::notice title=Coverage gate passed::${pct}% ≥ ${MIN_LINE_COVERAGE:-0}%"
+              ;;
+            below-threshold)
+              echo "::warning title=Coverage below threshold::${pct}% < ${MIN_LINE_COVERAGE:-0}%"
+              ;;
+            report-not-found)
+              echo "::warning title=Coverage::Cobertura.xml not found at ${cov_path}"
+              ;;
+            line-rate-missing)
+              echo '::warning title=Coverage::line-rate attribute not found in Cobertura.xml'
+              ;;
+          esac
+          #######################################################
+
+      - name: 🚦 Enforce Coverage Gate
+        # This is the only failing step in the gate flow.
+        if: >-
+          ${{ steps.coverage-eval.outputs.found == 'true'
+          && steps.coverage-eval.outputs.meets != 'true' }}
+        run: |
+          set -o errexit -o nounset -o pipefail
+
+          echo "::error title=Coverage gate failed::${{ steps.coverage-eval.outputs.pct }}% < ${MIN_LINE_COVERAGE}%"
+          exit "$ERR_COVERAGE_GATE_FAIL"
+          #######################################################
+
+      - name: 📤 Upload Coverage Artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v5.0.0
+        with:
+          name: ${{ env.COVERAGE_REPORT }}-${{ github.sha }}
+          path: ${{ env.COVERAGE_REPORT }}/**
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: 📊 Summary - Unit Tests & Coverage
+        if: ${{ always() }}
+        run: |
+          set -o errexit -o nounset -o pipefail
+
+          md="${COVERAGE_REPORT}/SummaryGithub.md"
+          {
+            echo '## 🧪 Unit Tests & Coverage'
+            if [[ '${{ steps.coverage-eval.outputs.found }}' == 'true' ]]; then
+              echo "Line coverage: **${{ steps.coverage-eval.outputs.pct }}%** (min: ${MIN_LINE_COVERAGE}%)"
+            else
+              echo '⚠️ `Cobertura.xml` not found'
+            fi
+
+            echo
+            if [ -f "$md" ]; then
+              # Demote headings inside the generated Markdown so it nests under our header nicely:
+              sed -E \
+                -e 's/^# Summary$/ /' \
+                -e 's/^## Coverage/###### Coverage/' \
+                "$md"
+            else
+              echo '⚠️ Coverage markdown summary not found'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          #######################################################
