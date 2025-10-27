@@ -86,12 +86,35 @@ jobs:
         run: |
           set -o errexit -o nounset -o pipefail
 
+          echo '::group::Tags'
+          {
+            git fetch --tags --prune-tags || true
+            echo "HEAD: $(git rev-parse --short HEAD)"
+            echo "Ref:  ${GITHUB_REF:-unknown}"
+            git describe --tags --abbrev=0 2>/dev/null || echo '(no tags)'
+          }
+          echo '::endgroup::'
+
           echo '::group::GitVersion (/output json)'
+          output='' rc=0
+          if ! output="$(dotnet gitversion /output json 2>&1)"; then
+            rc=$?
+            echo "::error title=GitVersion failed::${output}"
+            {
+              echo 'json<<EOF'
+              echo '{}'
+              echo 'EOF'
+            } >> "$GITHUB_OUTPUT"
+            echo '::endgroup::'
+            exit "$rc"
+          fi
+
           {
             echo 'json<<EOF'
-            dotnet gitversion /output json
+            printf '%s\n' "$output"
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
+      
           echo '::notice title=GitVersion::JSON version info captured'
           echo '::endgroup::'
           #######################################################
