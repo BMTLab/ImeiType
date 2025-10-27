@@ -12,18 +12,25 @@ description: >-
 inputs:
   version:
     description: >-
-      Version from the tag (e.g. v1.0.0 or v1.0.0-alpha)
+      Version from the tag (e.g. v1.0.0, v1.0.0-alpha, v1.0.0-alpha.1)
     required: true
   version-regex:
-    description: >- 
-      Regular expression to check the version format and filter existing tags
+    description: |-
+      Regular expression to check the version format and filter existing tags.
+      Default supports SemVer core "vMAJOR.MINOR.PATCH" with optional dotted prerelease:
+      "vMAJOR.MINOR.PATCH-PRERELEASE(.MORE)*".
+      Capturing groups:
+        - Group #1: full prerelease part without the leading dash (e.g. "alpha.1")
+        - Group #2: first prerelease identifier (e.g. "alpha")
     required: false
-    # Format: vMAJOR.MINOR.PATCH or vMAJOR.MINOR.PATCH-PRERELEASE
+    # Format: vMAJOR.MINOR.PATCH or vMAJOR.MINOR.PATCH-PRERELEASE(.MORE)*
+    # Group #1 = full prerelease ("alpha.1"), Group #2 = first identifier ("alpha")
     default: >-
-      ^v[0-9]+\.[0-9]+\.[0-9]+(-([0-9A-Za-z]+))?$
+      ^v[0-9]+\.[0-9]+\.[0-9]+(?:-(([0-9A-Za-z]+)(?:\.[0-9A-Za-z-]+)*))?$
   allowed-prerelease-suffix-regex:
     description: >-
-      Regular expression for acceptable prerelease values (e.g. "^(alpha|beta|rc)$")
+      Regular expression for acceptable prerelease values (e.g. "^(alpha|beta|rc)$").
+      This is matched against the FIRST prerelease identifier (capturing group #2)
     required: true
 
 outputs:
@@ -67,11 +74,13 @@ runs:
         #######################################
         # Validates the version string against a regex and evaluates prerelease rules.
         #
-        # Notes:
-        #   - With the default regex, capturing group #2 is the prerelease token (no leading dash).
+        # Notes (for the DEFAULT regex):
+        #   - Capturing group #1 = full prerelease without the leading dash (e.g., "alpha.1").
+        #   - Capturing group #2 = first prerelease identifier (e.g., "alpha"),
+        #     which is used to validate against allowed_prerelease_suffix_regex.
         #
         # Arguments (read-only):
-        #   1: version                               - Tag version to validate (e.g., v1.2.3, v1.2.3-rc).
+        #   1: version                               - Tag version to validate (e.g., v1.2.3, v1.2.3-rc.1).
         #   2: version_regex                         - Regex to validate format (and to provide capturing groups).
         #   3: allowed_prerelease_suffix_regex       - Regex for allowed prerelease labels (e.g., ^(alpha|beta|rc)$).
         # Outputs (by reference, via nameref):
@@ -93,13 +102,13 @@ runs:
 
           echo '::group::Validate format & prerelease'
           if [[ "$version" =~ $version_regex ]]; then
-            # If the regex defines a prerelease capturing group (default: group #2), use it:
+            # If the regex defines a prerelease capturing group (#2 = first identifier), use it:
             if [[ -z "${BASH_REMATCH[2]:-}" ]]; then
               echo "::notice title=Format OK::'$version' matches regex and has no prerelease"
               _is_publishable=true
             else
               _is_prerelease=true
-              local -r prerelease_token="${BASH_REMATCH[2]}"
+              local -r prerelease_token="${BASH_REMATCH[2]}" # e.g., "alpha"
               echo "::notice title=Prerelease detected::'${prerelease_token}'"
 
               if [[ "$prerelease_token" =~ $allowed_prerelease_suffix_regex ]]; then
@@ -289,11 +298,11 @@ runs:
             for tag in "${tags[@]}"; do
               printf ' - %s\n' "$tag"
             done
-  
+
             highest=''
             select_max_version tags highest
             echo "Highest existing version: '${highest}'"
-  
+
             echo '::group::Compare new vs highest existing'
             cmp=0
             compare_versions_semver_like "$version" "$highest" cmp
