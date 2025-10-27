@@ -5,7 +5,7 @@
         <VersionFile>VERSION.g.txt</VersionFile>
         <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
         <PackageReleaseNotesFile Condition="'$(PackageReleaseNotesFile)' == ''">
-            $(ArtifactsPath)/ReleaseNotes.md
+            $(ArtifactsPath)/package/release/ReleaseNotes.md
         </PackageReleaseNotesFile>
     </PropertyGroup>
 
@@ -18,14 +18,17 @@
     </Target>
 
     <Target Name="_SetPackageReleaseNotes"
-            BeforeTargets="Pack"
-            Condition="Exists('$(PackageReleaseNotesFile)')">
+            BeforeTargets="GenerateNuspec"
+            Condition="'$(Configuration)'=='Release' And Exists('$(PackageReleaseNotesFile)')">
         <ReadLinesFromFile File="$(PackageReleaseNotesFile)">
-            <Output TaskParameter="Lines" ItemName="_ReleaseNotesLines"/>
+            <Output TaskParameter="Lines" ItemName="_ReleaseNotesLines" />
         </ReadLinesFromFile>
         <PropertyGroup>
+            <!-- Convert an array of strings to text with \n -->
             <PackageReleaseNotes>@(_ReleaseNotesLines, '%0A')</PackageReleaseNotes>
         </PropertyGroup>
+        <Message Text="------- Release notes file: $(PackageReleaseNotesFile)" Importance="High" />
+        <Message Text="------- PackageReleaseNotes length: $([System.String]::Copy('$(PackageReleaseNotes)').Length)" Importance="Low" />
     </Target>
 
     <ItemGroup>

@@ -1,7 +1,25 @@
 # .github/workflows/ci-pack.yml
 
-# Builds (via the shared setup-project composite) and packs NuGet packages,
-# uploads *.nupkg artifacts, and writes a Summary section.
+# Builds the repo (via the shared setup-project composite), generates Markdown release notes
+# from Git history, injects them into NuGet `PackageReleaseNotes`, packs *.nupkg/*.snupkg,
+# uploads artifacts, and prints a human-friendly summary.
+#
+# Release notes generation:
+# - Fetches tags (handles shallow clones) and resolves the previous version-like tag `v*.*.*`,
+#   excluding the current tag on tag runs.
+# - Collects up to MAX_RELEASE_NOTES_LINES commit subjects (no merges) since the previous tag;
+#   falls back to “Initial release” when no previous tag exists.
+# - Writes `artifacts/package/release/ReleaseNotes.md` (same folder as packed artifacts),
+#   which MSBuild (see Directory.Build.targets) consumes automatically.
+# - Builds a “Full changelog” link using `<repo>/compare/<prev>...<current|HEAD>`.
+#
+# Packaging:
+# - Runs `dotnet pack -c Release --no-build` (build happens in the setup-project action).
+# - `PackageReleaseNotes` is populated from the generated ReleaseNotes.md before `GenerateNuspec`.
+# - Output directory is controlled by MSBuild and expected at `artifacts/package/release`.
+#
+# Compatibility:
+# - Works for `push`, `pull_request`, and tag-push events.
 
 name: Package CI
 
@@ -20,6 +38,7 @@ jobs:
     env:
       ### Directories
       PACKAGE_RELEASE: artifacts/package/release
+      PACKAGE_RELEASE_NOTES: artifacts/package/release/ReleaseNotes.md
 
     steps:
       - name: ⚙️ Checkout
@@ -37,15 +56,12 @@ jobs:
           REPO_URL: ${{ github.server_url }}/${{ github.repository }}
           HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           CURRENT_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+          MAX_RELEASE_NOTES_LINES: ${{ vars.MAX_RELEASE_NOTES_LINES || '50' }}
         run: |
           set -o errexit -o errtrace -o nounset -o pipefail
           shopt -s nullglob
 
           : "${REPO_URL:?is not set}"; : "${HEAD_SHA:?is not set}"
-
-          artifacts_dir='artifacts'
-          release_notes_file="${artifacts_dir}/ReleaseNotes.md"
-          max_release_notes_lines=50
 
           #######################################
           # Ensures `git tag` reflects remote tags.
@@ -102,7 +118,7 @@ jobs:
           # Arguments (read-only):
           #   1: range (string)       - e.g., 'v1.2.3..HEAD' or empty for full history.
           # Outputs (by reference via nameref):
-          #   2: _lines (array)       - Receives up to max_release_notes_lines formatted lines.
+          #   2: _lines (array)       - Receives up to MAX_RELEASE_NOTES_LINES formatted lines.
           # Returns:
           #   0 - Always.
           #######################################
@@ -112,7 +128,7 @@ jobs:
 
             mapfile -t _lines < <(
               git log --no-merges --pretty='- %s (%h)' ${range:+$range} \
-                | head -n "$max_release_notes_lines" \
+                | head -n "$MAX_RELEASE_NOTES_LINES" \
               || true
             )
           }
@@ -121,16 +137,14 @@ jobs:
           # Writes markdown release notes file.
           #
           # Arguments (read-only):
-          #   1: release_notes_file (string)    - Destination path.
-          #   2: prev_tag (string)              - Previous version tag or empty.
-          #   3: _lines (array, ref)            - Commit lines to write.
+          #   1: prev_tag (string)              - Previous version tag or empty.
+          #   2: _lines (array, ref)            - Commit lines to write.
           # Returns:
           #   0 - Always.
           #######################################
           function write_notes() {
-            local -r release_notes_file="$1"
-            local -r prev_tag="$2"
-            local -n _lines="$3"
+            local -r prev_tag="$1"
+            local -n _lines="$2"
 
             {
               echo '### Changes'
@@ -151,15 +165,15 @@ jobs:
                 local -r right_ref="${CURRENT_TAG:-$HEAD_SHA}"
                 echo "Full changelog: ${REPO_URL}/compare/${prev_tag}...${right_ref}"
               fi
-            } > "$release_notes_file"
+            } > "$PACKAGE_RELEASE_NOTES"
           }
 
           echo '::group::Prepare'
-          mkdir -p "$artifacts_dir"
+          mkdir -p "$PACKAGE_RELEASE"
           ensure_git_tags_available
 
-          echo "Artifacts dir: $artifacts_dir"
-          echo "Output file: $release_notes_file"
+          echo "Artifacts dir: $PACKAGE_RELEASE"
+          echo "Output file: $PACKAGE_RELEASE_NOTES"
           echo "Current tag (if any): ${CURRENT_TAG:-'(none)'}"
           echo '::endgroup::'
 
@@ -173,10 +187,7 @@ jobs:
 
           commits=()
           collect_commits "$range" commits
-          write_notes "$release_notes_file" "$prev_tag" commits
-
-          # Expose the file path to later steps (MSBuild will pick it via a property):
-          printf 'PACKAGE_RELEASE_NOTES_FILE=%s\n' "$release_notes_file" >> "$GITHUB_ENV"
+          write_notes "$prev_tag" commits
 
           # Brief preview into the job summary:
           {
@@ -195,7 +206,7 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-          echo "::notice title=Release notes::Wrote ${release_notes_file} with ${#commits[@]} line(s)"
+          echo "::notice title=Release notes::Wrote $PACKAGE_RELEASE_NOTES with ${#commits[@]} line(s)"
           #######################################################
 
       # Pack all projects that define pack targets in the repo.
@@ -209,8 +220,7 @@ jobs:
               -c Release \
               --no-build \
               --include-symbols \
-              --include-source \
-              /p:PackageReleaseNotesFile="${PACKAGE_RELEASE_NOTES_FILE:-}"
+              --include-source
           }
           echo '::endgroup::'
           #######################################################
