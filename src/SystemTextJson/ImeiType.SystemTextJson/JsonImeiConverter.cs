@@ -37,7 +37,10 @@ public class JsonImeiConverter : JsonConverter<Imei>
     /// <param name="typeToConvert">The type of the object to convert.</param>
     /// <param name="options">Optional serializer options.</param>
     /// <returns>An <see cref="Imei" /> object constructed from the JSON data.</returns>
-    /// <exception cref="JsonException">Thrown if deserialization fails or if the JSON is not a valid <see cref="Imei" /> value.</exception>
+    /// <exception cref="JsonException">
+    ///     Thrown if deserialization fails or if the JSON
+    ///     is not a valid <see cref="Imei" /> value.
+    /// </exception>
     public override Imei Read
     (
         ref Utf8JsonReader reader,
@@ -64,10 +67,12 @@ public class JsonImeiConverter : JsonConverter<Imei>
     /// <param name="options">Optional serializer options.</param>
     /// <remarks>
     ///     Uses <see cref="WriteOptions" /> to determine whether to write the <see cref="Imei" /> as a number or a string.
-    ///     If <see cref="JsonImeiWriteOptions.Default" /> is used, it falls back to <see cref="JsonSerializerOptions.NumberHandling" />:
-    ///     if <see cref="JsonNumberHandling.WriteAsString" /> is not set, the converter writes a numeric value; otherwise, it writes a string.
+    ///     If <see cref="JsonImeiWriteOptions.Default" /> is used, it falls back to
+    ///     <see cref="JsonSerializerOptions.NumberHandling" />:
+    ///     if <see cref="JsonNumberHandling.WriteAsString" /> is not set, the converter writes a numeric value; otherwise, it
+    ///     writes a string.
     /// </remarks>
-    [SuppressMessage("Major Code Smell", """S907:"goto" statement should not be used""")]
+    [SuppressMessage("Major Code Smell", checkId: """S907:"goto" statement should not be used""")]
     public override void Write
     (
         Utf8JsonWriter writer,

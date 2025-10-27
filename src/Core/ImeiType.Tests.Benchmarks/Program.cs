@@ -1,4 +1,5 @@
 #if RELEASE
+
 using BenchmarkDotNet.Running;
 
 using BMTLab.ImeiType.Tests.Benchmarks;
