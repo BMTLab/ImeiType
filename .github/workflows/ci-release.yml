@@ -22,7 +22,7 @@ on:
       version:
         description: >-
           Version string to validate (e.g., v1.2.3 or v1.2.3-rc).
-          In live runs from tags, pass ${{ github.ref_name }}.
+          In live runs from tags, pass github.ref_name.
           In dry-run (e.g., workflow_dispatch), provide the desired version explicitly
         required: true
         type: string
