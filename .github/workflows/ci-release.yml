@@ -121,7 +121,7 @@ jobs:
 
     steps:
       - name: 📥 Download Packages
-        uses: actions/download-artifact@v5.0.0
+        uses: actions/download-artifact@v6.0.0
         with:
           name: packages-${{ github.sha }}
           path: ${{ env.RELEASE_DIR }}
@@ -234,7 +234,7 @@ jobs:
 
     steps:
       - name: 📥 Download Packages
-        uses: actions/download-artifact@v5.0.0
+        uses: actions/download-artifact@v6.0.0
         with:
           name: packages-${{ github.sha }}
           path: ${{ env.RELEASE_DIR }}

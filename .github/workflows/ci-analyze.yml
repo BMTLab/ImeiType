@@ -54,14 +54,14 @@ jobs:
         run: git checkout HEAD^2
 
       - name: 🫙 Initialize CodeQL
-        uses: github/codeql-action/init@v4.30.8
+        uses: github/codeql-action/init@v4.31.0
         with:
           languages: csharp
           # We skip autobuild for speed; works for standard .NET repos:
           build-mode: none
 
       - name: 🩻 Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4.30.8
+        uses: github/codeql-action/analyze@v4.31.0
 
 
   dotnet-analyzes:
@@ -226,7 +226,7 @@ jobs:
       - name: 📤 Upload Analyzer Reports
         # Always upload to help debugging locally vs CI differences.
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v5.0.0
         with:
           name: ${{ env.DOTNET_ANALYZES }}-${{ github.sha }}
           path: ${{ env.DOTNET_ANALYZES }}/*
