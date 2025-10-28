@@ -3,7 +3,6 @@ description: Let us know about a bug!
 labels: ['bug']
 assignees:
   - BMTLab
-type: bug
 title: '[Bug]: '
 body:
   - type: markdown
