@@ -3,7 +3,7 @@ description: Suggest a new feature/enhancement!
 labels: ['enhancement']
 assignees:
   - BMTLab
-title: '[feat req]'
+title: '[Feature]: '
 body:
   - type: textarea
     id: feature
