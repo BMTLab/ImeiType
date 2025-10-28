@@ -26,7 +26,7 @@ dotnet add package BMTLab.ImeiType
 Or edit your `.csproj`:
 
 ```xml
-<PackageReference Include="BMTLab.ImeiType" Version="1.1.0" />
+<PackageReference Include="BMTLab.ImeiType" Version="1.2.0" />
 ```
 
 ## Features
@@ -230,7 +230,7 @@ dotnet add package BMTLab.ImeiType.SystemTextJson
 Or edit your `.csproj`:
 
 ```xml
-<PackageReference Include="BMTLab.ImeiType.SystemTextJson" Version="1.1.0" />
+<PackageReference Include="BMTLab.ImeiType.SystemTextJson" Version="1.2.0" />
 ```
 
 ### Usage
