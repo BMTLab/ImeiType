@@ -5,7 +5,7 @@
     <Import Project="$([MSBuild]::GetPathOfFileAbove(Directory.Build.props, $(MSBuildThisFileDirectory)..))"/>
 
     <PropertyGroup Label="FrameworkConfig">
-        <!-- The ImeiType.SystemTextJson extension is not targeted at netstandard -->
+        <!-- The ImeiType.SystemTextJson extension is not targeted at netstandard! -->
         <TargetFrameworks>net9.0;net8.0;net7.0;net6.0</TargetFrameworks>
     </PropertyGroup>
 

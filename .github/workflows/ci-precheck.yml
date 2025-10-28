@@ -1,0 +1,140 @@
+# .github/workflows/ci-precheck.yml
+
+# Precheck pipeline:
+# - Runs the shared "setup-project" composite (without build) to restore tools/SDKs and dependencies.
+# - Verifies that packages.lock.json files didn't change (guardrail for reproducible restores).
+# - Captures GitVersion info and publishes a concise Build Information section to the job Summary.
+
+name: Precheck CI
+
+on:
+  workflow_call:
+
+jobs:
+  precheck:
+    name: Precheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    env:
+      ### Exit Codes
+      ERR_LOCKFILES_CHANGED: 11
+
+    steps:
+      # Explicit checkout with full history.
+      # Full history is for tools that read versioning or tags.
+      - name: ⚙️ Checkout
+        uses: actions/checkout@v5.0.0
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      # Shared setup without build:
+      # - configures .NET env, PATH and problem matcher;
+      # - installs SDKs, restores tools and solution.
+      - name: 🔧 Setup (no build)
+        uses: ./.github/actions/setup-project
+        with:
+          run-build: 'false'
+
+      # Diagnostics: print the environment .NET details.
+      - name: ℹ️ Display .NET Version
+        run: |
+          echo '::group::dotnet --info'
+          dotnet --info
+          echo '::endgroup::'
+
+      # Guardrail: if restore changed any packages.lock.json, fail early with a diff.
+      - name: 🔒 Verify Package Lockfiles Unchanged
+        run: |
+          set -o errexit -o nounset -o pipefail
+
+          echo '::group::Lockfile check'
+          if git status --porcelain | grep -F 'packages.lock.json' >/dev/null 2>&1; then
+            echo '::error title=packages.lock.json changed::Lock files changed during restore.' \
+                 'Commit updated lock files'
+
+            git diff -- '**/packages.lock.json' || true
+
+            echo '::endgroup::'
+            exit "$ERR_LOCKFILES_CHANGED"
+          else
+            echo '::notice title=Lockfiles::No lockfile changes detected'
+            echo '::endgroup::'
+          fi
+          #######################################################
+
+      - name: 💬 PR Comment - Lockfiles changed
+        if: >- 
+            ${{ failure()
+            && github.event_name == 'pull_request' }}
+        uses: marocchino/sticky-pull-request-comment@v2.9.4
+        with:
+          header: precheck-lockfiles
+          hide: 'true'
+          message: |
+            **Precheck:** `packages.lock.json` changed during restore.
+            Please commit the updated lockfiles!
+            [View CI run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+      # Capture versioning metadata for the Summary
+      - name: 🔍 Capture Version Info (GitVersion)
+        id: gitversion
+        run: |
+          set -o errexit -o nounset -o pipefail
+
+          echo '::group::Tags'
+          {
+            git fetch --tags --prune-tags || true
+            echo "HEAD: $(git rev-parse --short HEAD)"
+            echo "Ref:  ${GITHUB_REF:-unknown}"
+            git describe --tags --abbrev=0 2>/dev/null || echo '(no tags)'
+          }
+          echo '::endgroup::'
+
+          echo '::group::GitVersion (/output json)'
+          output='' rc=0
+          if ! output="$(dotnet gitversion /output json 2>&1)"; then
+            rc=$?
+            echo "::error title=GitVersion failed::${output}"
+            {
+              echo 'json<<EOF'
+              echo '{}'
+              echo 'EOF'
+            } >> "$GITHUB_OUTPUT"
+            echo '::endgroup::'
+            exit "$rc"
+          fi
+
+          {
+            echo 'json<<EOF'
+            printf '%s\n' "$output"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+      
+          echo '::notice title=GitVersion::JSON version info captured'
+          echo '::endgroup::'
+          #######################################################
+
+      - name: 📊 Summary - Build Info
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          Set-StrictMode -Version Latest
+          $ErrorActionPreference = 'Stop'
+
+          "## 📊 Build Information" >> $env:GITHUB_STEP_SUMMARY
+          if ('${{ steps.gitversion.outputs.json }}') {
+            $gv = '${{ steps.gitversion.outputs.json }}' | ConvertFrom-Json
+            "| Property | Value |"   >> $env:GITHUB_STEP_SUMMARY
+            "|---|---|"              >> $env:GITHUB_STEP_SUMMARY
+            ("| Version | **{0}** |" -f $gv.SemVer)             >> $env:GITHUB_STEP_SUMMARY
+            ("| Branch | `{0}` |"    -f $gv.BranchName)         >> $env:GITHUB_STEP_SUMMARY
+            ("| Commit | `{0}` |"    -f $gv.Sha.Substring(0,7)) >> $env:GITHUB_STEP_SUMMARY
+          } else {
+            "⚠️ GitVersion data not available" >> $env:GITHUB_STEP_SUMMARY
+          }
+          #######################################################

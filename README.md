@@ -249,6 +249,7 @@ var deserialized = JsonSerializer.Deserialize<ImeiContainer>(json, options); //>
 ### Extension Methods
 
 For convenience, you can use one of the suggested extension methods:
+
 - `.WithImeiConverter(JsonImeiWriteOptions writeOptions = JsonImeiWriteOptions.Default)` (on `JsonSerializerOptions`)
   Attaches the IMEI converter with a chosen writing strategy.
 - `.AddImeiConverter(JsonImeiWriteOptions writeOptions = JsonImeiWriteOptions.Default)` (on `IList<JsonConverter>`)
@@ -298,7 +299,18 @@ MIT — [Apache 2.0](https://github.com/fluentassertions/fluentassertions/blob/7
 but the `ImeiType` project does not include any binary files or source code
 of [FluentAssertions](https://github.com/fluentassertions/fluentassertions/tree/7.0.0).
 
-## [Contributing](CONTRIBUTING.md)
+### [Contributing](CONTRIBUTING.md)
 
+**From creator:**
+
+Although this repo ships a working, reliable implementation of an IMEI type,
+it is a very niche need, and many folks who need it have likely built their own already.
+If the CI/CD and layout feel a bit over-engineered for a small .NET project,
+that is intentional: the primary goal here is to sharpen my MSBuild and GitHub Actions skills,
+practice publishing NuGet packages that multi-target different TFMs, and end up with a reusable template for future
+ideas.
+
+If you have suggestions for cleaner build/automation flows, a better project structure,
+or practices that improve the developer/maintainer experience, I would love to hear them.
 Please feel free to fork this, contribute or let me know if you find a bug.
 Any ideas for improvement are always welcome as well :innocent:

@@ -1,0 +1,218 @@
+# .github/actions/setup-project/action.yml
+
+name: Setup .NET Project
+description: >-
+  Prepares a repository for .NET CI:
+    - Checks out the repo with full history (for tools like GitVersion).
+    - Configures opinionated .NET CI env defaults and ensures dotnet tools PATH.
+    - Installs multiple .NET SDKs and enables NuGet package caching via packages.lock.json.
+    - Caches global dotnet tools and restores local tools.
+    - Restores dependencies in locked mode for reproducible builds.
+    - Enables an MSBuild problem matcher for PR annotations.
+    - Optionally builds the solution (with a verbose fallback on failure).
+
+inputs:
+  run-build:
+    description: >-
+      If 'true', runs `dotnet build -c Release --no-restore` and a verbose rebuild on failure
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    # Ensure global dotnet tools directory is on PATH for subsequent steps.
+    # Writes to $GITHUB_ENV and $GITHUB_PATH so following steps (and actions) can see the path.
+    - name: ⚙ Resolve .NET Tools Path
+      shell: bash
+      run: |
+        set -o errexit -o nounset -o pipefail
+        : "${GITHUB_ENV:?is not set}"
+        : "${GITHUB_PATH:?is not set}"
+
+        echo '::group::Resolve DOTNET_TOOLS path'
+        printf 'DOTNET_TOOLS=%s\n' "${HOME}/.dotnet/tools" >> "$GITHUB_ENV"
+        printf '%s\n' "${HOME}/.dotnet/tools" >> "$GITHUB_PATH"
+        echo "DOTNET_TOOLS set::${HOME}/.dotnet/tools"
+        echo '::endgroup::'
+        #######################################################
+
+    # Configure core .NET CI environment defaults and persist them for later steps.
+    # Behavior:
+    #   - Respects job-level overrides if provided by the caller.
+    #   - Exports variables for this step and appends them to $GITHUB_ENV for subsequent steps.
+    #   - Sets opinionated defaults (keep msbuild nodes; skip NuGet XML docs).
+    - name: ⚙ Configure .NET env & PATH
+      shell: bash
+      run: |
+        set -o errexit -o nounset -o pipefail
+
+        #######################################
+        # Sets an environment variable to a default if unset/empty and persists it.
+        #
+        # Behavior:
+        #   - Respects a value already provided by the caller via job `env:`.
+        #   - Exports the variable for the current step (subprocesses see it).
+        #   - Appends "NAME=VALUE" to $GITHUB_ENV so later steps inherit it.
+        #
+        # Arguments (read-only):
+        #   1: name                          - Variable name (e.g., 'DOTNET_NOLOGO').
+        #   2: default                       - Default value if the variable is unset/empty.
+        # Outputs:
+        #   (none)
+        # Returns:
+        #   0 - Always.
+        #######################################
+        function __set_env() {
+          local -r name="$1"
+          local -r default="$2"
+          local -r value="${!name:-$default}" # respect caller override if present
+
+          export "${name}=${value}"
+          printf '%s=%s\n' "$name" "$value" >> "$GITHUB_ENV"
+        }
+
+        echo '::group::Set .NET CI env defaults'
+        # Opinionated .NET CI defaults (caller can still override via job 'env:').
+        __set_env DOTNET_NOLOGO 'true'
+        __set_env DOTNET_SKIP_FIRST_TIME_EXPERIENCE '1'
+        __set_env DOTNET_CLI_TELEMETRY_OPTOUT '1'
+        __set_env MSBUILDDISABLENODEREUSE '0'   # keep msbuild nodes for speed
+        __set_env NUGET_XMLDOC_MODE 'skip'      # skip XML docs to save IO/bandwidth
+        echo '::endgroup::'
+        echo 'NET env configured;' \
+             "MSBUILDDISABLENODEREUSE=${MSBUILDDISABLENODEREUSE};" \
+             "NUGET_XMLDOC_MODE=${NUGET_XMLDOC_MODE}"
+        #######################################################
+
+    # Install multiple SDKs and enable NuGet cache via packages.lock.json.
+    # Notes:
+    #   - The action’s built-in cache only covers NuGet packages, not SDK tarballs.
+    #   - Multiple SDK channels are installed to satisfy multi-TFM builds/tests.
+    - name: ⚙ Setup .NET
+      uses: actions/setup-dotnet@v5.0.0
+      with:
+        dotnet-version: |
+          9.0.x
+          8.0.x
+          7.0.x
+          6.0.x
+        cache: true
+        cache-dependency-path: '**/packages.lock.json'
+
+    # Cache global dotnet tools (e.g., GitVersion).
+    # Uses the presence of dotnet-tools.json to key the cache.
+    - name: 🧰 Cache .NET Tools
+      uses: actions/cache@v4.3.0
+      with:
+        path: ${{ env.DOTNET_TOOLS }}
+        key: ${{ runner.os }}-dotnet-tools-${{ hashFiles('**/dotnet-tools.json') }}
+        restore-keys: |
+          ${{ runner.os }}-dotnet-tools-
+
+    # Restore local tools declared in dotnet-tools.json.
+    - name: 🪛 Install .NET Tools
+      shell: bash
+      run: |
+        set -o errexit -o nounset -o pipefail
+
+        echo '::group::dotnet tool restore'
+        dotnet tool restore
+        echo "Restore tools completed; DOTNET_TOOLS=${DOTNET_TOOLS:-unset}"
+        echo '::endgroup::'
+        #######################################################
+
+    # Restore solution in locked mode (uses committed packages.lock.json files).
+    - name: 🧩 Restore Dependencies
+      shell: bash
+      run: |
+        set -o errexit -o nounset -o pipefail
+
+        echo '::group::dotnet restore (locked-mode)'
+        dotnet restore --locked-mode
+        echo "Restore packages completed, mode=locked; NUGET_XMLDOC_MODE=${NUGET_XMLDOC_MODE:-unset}"
+        echo '::endgroup::'
+        #######################################################
+
+    # Add MSBuild problem matcher to turn compiler messages into PR annotations.
+    # The regex accepts optional trailing [Project] segment.
+    # Non-fatal: continue-on-error to avoid blocking if something goes wrong.
+    - name: 🪪 Enable MSBuild problem matcher
+      shell: bash
+      run: |
+        set -o errexit -o nounset -o pipefail
+
+        echo '::group::Write matcher file'
+        cat > "${RUNNER_TEMP}/msbuild-matcher.json" <<'JSON'
+        {
+          "problemMatcher": [
+            {
+              "owner": "msbuild-cs",
+              "pattern": [
+                {
+                  "regexp": "^(.+?\\.\\w+)\\((\\d+),(\\d+)\\): (warning|error) ([A-Z]{2,}\\d{4}): (.+?)(?: \\[.*\\])?$",
+                  "file": 1,
+                  "line": 2,
+                  "column": 3,
+                  "severity": 4,
+                  "code": 5,
+                  "message": 6
+                }
+              ]
+            }
+          ]
+        }
+        JSON
+        echo '::endgroup::'
+
+        echo '::group::Register matcher'
+        echo "::add-matcher::${RUNNER_TEMP}/msbuild-matcher.json"
+        echo 'Problem matcher enabled, owner=msbuild-cs'
+        echo '::endgroup::'
+      continue-on-error: true
+
+    # Optional build step (controlled by inputs.run-build).
+    # If this fails, the composite keeps running to allow the verbose fallback below.
+    - name: 🛠️ Build
+      if: ${{ inputs.run-build == 'true' }}
+      shell: bash
+      run: |
+        set -o errexit -o nounset -o pipefail
+
+        echo '::group::dotnet build'
+        dotnet build -c Release --no-restore
+        echo '::endgroup::'
+        #######################################################
+
+    # Fallback: verbose rebuild with optional repo cleaning script (PowerShell).
+    # Triggers only if a previous step in this composite failed (typically the build).
+    - name: 🔧 Rebuild (verbose) on failure
+      if: ${{ inputs.run-build == 'true' && failure() }}
+      shell: pwsh
+      run: |
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = 'Stop'
+
+        Write-Host "::warning title=Fallback rebuild::Earlier build step failed; running verbose rebuild"
+        if (Test-Path ./scripts/clean.ps1) {
+          Write-Host "::group::Cleaning"
+          ./scripts/clean.ps1
+          Write-Host "::endgroup::"
+        }
+        Write-Host "::group::dotnet build (verbose)"
+        dotnet build -c Release --verbosity detailed
+        Write-Host "::endgroup::"
+        #######################################################
+
+    # Always remove the matcher to avoid leaking it to unrelated steps.
+    # Non-fatal by design.
+    - name: 🧹 Disable MSBuild matcher
+      if: ${{ always() }}
+      shell: bash
+      run: |
+        set -o errexit -o nounset -o pipefail
+
+        echo '::group::Remove matcher'
+        echo '::remove-matcher owner=msbuild-cs::'
+        echo '::endgroup::'
+      continue-on-error: true

@@ -1,17 +1,24 @@
 # .github/workflows/ci-main.yml
 
-# This workflow is the entry-point workflow
-# that orchestrates our project's CI by delegating tasks to dedicated sub-workflows.
+# Orchestrates the repository CI. Routes work to reusable workflows:
+# - ci-precheck.yml          (pre-restore guardrails + build info)
+# - ci-unit-tests.yml        (unit tests + coverage)
+# - ci-mutation-tests.yml    (mutation tests via Stryker)
+# - ci-pack.yml              (dotnet pack + upload nupkg artifacts)
+# - ci-analyze.yml           (CodeQL / .NET analysis) as a separate job
+# - ci-upload-coverage.yml   (Codecov upload) after coverage artifacts exist
+# - ci-release.yml           (NuGet + GitHub Release) on version tags (v*.*.*)
+# Uses strict default permissions and per-ref concurrency to cancel superseded runs.
 
 name: Main CI
 
 on:
   pull_request:
-    branches:
+    branches: &tracked-branches
       - main
       - release
       - dev
-    paths-ignore:
+    paths-ignore: &paths-ignore
       - '**/*.md'
       - '**/*.txt'
       - '.gitignore'
@@ -23,63 +30,99 @@ on:
       - '.actrc'
 
   push:
-    branches:
-      - main
-      - release
-      - dev
+    branches: *tracked-branches
     tags:
-      - "v*.*.*"
-    paths-ignore:
-      - '**/*.md'
-      - '**/*.txt'
-      - '.gitignore'
-      - '.gitattributes'
-      - '.github/dependabot.yml'
-      - '.github/CODEOWNERS'
-      - 'LICENSE'
-      - '.act/*'
-      - '.actrc'
+      - 'v*.*.*'
+    paths-ignore: *paths-ignore
 
   workflow_dispatch:
 
-env:
-  DOTNET_NOLOGO: true
-  DOTNET_CLI_TELEMETRY_OPTOUT: true
-  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
-  DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION: true
+# Concurrency control:
+# - For pull requests, cancel any ongoing runs for the same PR;
+# - For pushes to a branch, cancel any ongoing runs for the same branch.
+# This ensures that only the latest commit is being tested.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+# Set default, read-only permissions for all jobs in this workflow.
+# This establishes a secure-by-default baseline, following the principle of least privilege.
+# Any job that needs more permissions must explicitly request them, overriding this block.
+permissions:
+  contents: read
 
 jobs:
-  build-packages:
-    name: 🏗️ Build, Test & Pack
-    uses: ./.github/workflows/ci-build.yml
-    secrets: inherit
+  precheck:
+    name: 🚪 Precheck
+    uses: ./.github/workflows/ci-precheck.yml
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
 
-  analyze-packages:
+  analyze:
     name: 🔬 Code Analyze
-    # if it is not local debugging by the 'nektos/act' tool:
-    if: ${{ (github.event.act == 'false' || github.event.act == '') }}
+    needs: precheck
     uses: ./.github/workflows/ci-analyze.yml
-    secrets: inherit
+    permissions:
+      contents: read
+      security-events: write # to upload SARIF to GitHub Security
+
+  unit-tests:
+    name: 🧪 Unit & Coverage
+    needs: precheck
+    uses: ./.github/workflows/ci-unit-tests.yml
+    permissions:
+      contents: read
+      checks: write
+
+  mutation-tests:
+    name: 🧬 Mutation Tests
+    needs: precheck
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    uses: ./.github/workflows/ci-mutation-tests.yml
+    permissions:
+      contents: read
+      checks: write
+
+  pack:
+    name: 📦 Pack
+    needs: precheck
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    uses: ./.github/workflows/ci-pack.yml
+    permissions:
+      contents: read
+      checks: write
 
   upload-coverage:
     name: 🧾 Code Coverage
-    needs: build-packages
-    # if it is not local debugging by the 'nektos/act' tool:
-    if: ${{ (github.event.act == 'false' || github.event.act == '') }}
-    uses: ./.github/workflows/ci-coverage.yml
-    secrets: inherit
+    needs: unit-tests
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    uses: ./.github/workflows/ci-upload-coverage.yml
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-  release-packages:
+  release:
     name: 🛳️ Release
+    # Wait for all pipelines.
     needs:
-      - build-packages
-      - analyze-packages
-    # if it is not local debugging by the 'nektos/act' tool,
-    # and a version tag is assigned:
+      - analyze
+      - unit-tests
+      - mutation-tests
+      - pack
+    # And only if a version tag is assigned.
     if: >-
-      ${{ (github.event.act == 'false' || github.event.act == '')
-      && startsWith(github.ref, 'refs/tags/v')
+      ${{ github.actor != 'dependabot[bot]'
       && github.event_name == 'push'
-      && (github.ref_type == 'tag' || github.ref_type == '') }}
+      && startsWith(github.ref, 'refs/tags/v') }}
     uses: ./.github/workflows/ci-release.yml
-    secrets: inherit
+    permissions:
+      contents: write
+    with:
+      version: ${{ github.ref_name }}
+    secrets:
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}

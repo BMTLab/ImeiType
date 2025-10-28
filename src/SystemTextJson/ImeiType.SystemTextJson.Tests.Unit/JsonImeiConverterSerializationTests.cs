@@ -2,6 +2,12 @@
 
 public class JsonImeiConverterSerializationTests
 {
+#if NET7_0_OR_GREATER
+    [StringSyntax(StringSyntaxAttribute.Json)]
+#endif
+    private string? _expectedJson;
+
+
     private static JsonSerializerOptions GetOptions
     (
         JsonImeiWriteOptions imeiWriteOptions = Default,
@@ -12,12 +18,6 @@ public class JsonImeiConverterSerializationTests
             WriteIndented = false,
             NumberHandling = AllowReadingFromString | (globalWriteOptions ?? AllowReadingFromString)
         }.WithImeiConverter(imeiWriteOptions);
-
-
-#if NET7_0_OR_GREATER
-    [StringSyntax(StringSyntaxAttribute.Json)]
-#endif
-    private string? _expectedJson;
 
 
     [Theory]

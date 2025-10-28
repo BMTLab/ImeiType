@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <ItemGroup Label="ProjectReferences">
-        <ProjectReference Include="..\ImeiType\ImeiType.csproj" />
+        <ProjectReference Include="..\ImeiType\ImeiType.csproj"/>
     </ItemGroup>
 
 </Project>
