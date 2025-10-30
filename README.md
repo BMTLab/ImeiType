@@ -1,8 +1,8 @@
 # BMTLab.ImeiType
 
 [![Release](https://github.com/BMTLab/ImeiType/actions/workflows/ci-main.yml/badge.svg)](https://github.com/BMTLab/ImeiType/actions/workflows/ci-main.yml)
-[![Build](https://github.com/BMTLab/ImeiType/actions/workflows/ci-build.yml/badge.svg)](https://github.com/BMTLab/ImeiType/actions/workflows/ci-build.yml)
-[![CodeQL](https://github.com/BMTLab/ImeiType/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/BMTLab/ImeiType/actions/workflows/github-code-scanning/codeql)
+[![Analyze CI](https://github.com/BMTLab/ImeiType/actions/workflows/ci-analyze.yml/badge.svg?branch=main)](https://github.com/BMTLab/ImeiType/actions/workflows/ci-analyze.yml)
+[![CodeQL](https://github.com/BMTLab/ImeiType/actions/workflows/github-code-scanning/codeql/badge.svg?branch=main)](https://github.com/BMTLab/ImeiType/actions/workflows/github-code-scanning/codeql)
 [![NuGet](https://img.shields.io/nuget/v/BMTLab.ImeiType?logo=nuget)](https://www.nuget.org/packages/BMTLab.ImeiType)
 ![Nuget Downloads](https://img.shields.io/nuget/dt/BMTLab.ImeiType)
 
