@@ -307,13 +307,25 @@ public readonly partial struct Imei
 #endregion _Conversion Operators
 
 
-    /// <inheritdoc />
+    /// <summary>
+    ///     Returns the hash code for this <see cref="Imei" /> instance.
+    /// </summary>
+    /// <returns>
+    ///     A 32-bit signed integer that is the hash code for this instance.
+    /// </returns>
     [System.Diagnostics.Contracts.Pure]
     public override int GetHashCode() =>
         _value.GetHashCode();
 
 
-    /// <inheritdoc />
+    /// <summary>
+    ///     Indicates whether this instance and a specified object are equal.
+    /// </summary>
+    /// <param name="obj">The object to compare with the current instance.</param>
+    /// <returns>
+    ///     <see langword="true" /> if <paramref name="obj" /> and this instance are the same type
+    ///     and represent the same value; otherwise, <see langword="false" />.
+    /// </returns>
     [System.Diagnostics.Contracts.Pure]
     [SuppressMessage("ReSharper", "InlineTemporaryVariable")]
     public override bool Equals(object? obj)
@@ -324,7 +336,14 @@ public readonly partial struct Imei
     }
 
 
-    /// <inheritdoc />
+    /// <summary>
+    ///     Indicates whether the current <see cref="Imei" /> is equal to another <see cref="Imei" />.
+    /// </summary>
+    /// <param name="other">An <see cref="Imei" /> to compare with this current instance.</param>
+    /// <returns>
+    ///     <see langword="true" /> if the current <see cref="Imei" /> is equal to the <paramref name="other" /> parameter;
+    ///     otherwise, <see langword="false" />.
+    /// </returns>
     [System.Diagnostics.Contracts.Pure]
     public bool Equals(Imei other) =>
         _value.Equals(other._value);
