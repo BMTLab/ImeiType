@@ -54,7 +54,7 @@ public class JsonImeiConverterAttributeTests
 }
 
 
-public class SomeClass
+internal sealed class SomeClass
 {
     [JsonPropertyName("val")]
     [JsonConverter(typeof(JsonImeiConverter))]

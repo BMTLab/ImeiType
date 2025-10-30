@@ -6,7 +6,7 @@ namespace BMTLab.ImeiType.SystemTextJson.Tests.Unit;
 ///     A container for testing scenarios where an <see cref="Imei" /> field may be null.
 /// </summary>
 [UsedImplicitly]
-public record NullableImeiContainer
+internal sealed record NullableImeiContainer
 {
     /// <summary>Optional IMEI value.</summary>
     [JsonPropertyName("val")]
@@ -18,7 +18,7 @@ public record NullableImeiContainer
 ///     A container for testing scenarios with a non-null <see cref="Imei" /> field.
 /// </summary>
 [UsedImplicitly]
-public record ImeiContainer
+internal sealed record ImeiContainer
 {
     /// <summary>IMEI value.</summary>
     [JsonPropertyName("val")]
@@ -33,7 +33,7 @@ public record ImeiContainer
 /// <typeparam name="TKey">The dictionary key type.</typeparam>
 /// <typeparam name="TValue">The dictionary value type, which may be <see cref="Imei" /> or another type.</typeparam>
 [UsedImplicitly]
-public record ImeiDictionaryContainer<TKey, TValue> where TKey : notnull
+internal sealed record ImeiDictionaryContainer<TKey, TValue> where TKey : notnull
 {
     /// <summary>Dictionary field for testing dictionary-based JSON structures.</summary>
     [JsonPropertyName("val")]
@@ -45,7 +45,7 @@ public record ImeiDictionaryContainer<TKey, TValue> where TKey : notnull
 ///     A container for testing scenarios where the <see cref="Imei" /> values are stored in a list.
 /// </summary>
 [UsedImplicitly]
-public record ImeiListContainer
+internal sealed record ImeiListContainer
 {
     /// <summary>List of IMEI values (nullable).</summary>
     [JsonPropertyName("val")]

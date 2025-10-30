@@ -80,6 +80,7 @@ public class JsonImeiConverter : JsonConverter<Imei>
         JsonSerializerOptions? options
     )
     {
+        Debug.Assert(writer is not null, $"{nameof(writer)} != null");
         switch (WriteOptions)
         {
             case ForceWriteAsNumber:
@@ -134,7 +135,10 @@ public class JsonImeiConverter : JsonConverter<Imei>
         Utf8JsonWriter writer,
         Imei imei,
         JsonSerializerOptions options
-    ) =>
+    )
+    {
+        Debug.Assert(writer is not null, $"{nameof(writer)} != null");
         writer.WritePropertyName(imei.ToReadOnlySpan());
+    }
 #endregion _DicionaryKeysHandling
 }

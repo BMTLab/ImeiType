@@ -6,7 +6,7 @@ namespace BMTLab.ImeiType.SystemTextJson.Tests.Unit.Extensions;
 /// <summary>
 ///     Provides extension methods for JSON text manipulation in test scenarios.
 /// </summary>
-public static partial class JsonTextExtensions
+internal static partial class JsonTextExtensions
 {
     /// <summary>
     ///     Removes any spaces and line breaks from the specified <paramref name="json" /> string,
@@ -43,7 +43,7 @@ public static partial class JsonTextExtensions
 
 
 #if NET7_0_OR_GREATER
-partial class JsonTextExtensions
+internal static partial class JsonTextExtensions
 {
     public static partial string Minify([StringSyntax(StringSyntaxAttribute.Json)] this string json) =>
         WhiteSpacesPattern().Replace(json, string.Empty);
@@ -53,7 +53,7 @@ partial class JsonTextExtensions
     private static partial Regex WhiteSpacesPattern();
 }
 #else
-partial class JsonTextExtensions
+internal static partial class JsonTextExtensions
 {
     public static partial string Minify(this string json) =>
         Regex.Replace(json, @"\s*", string.Empty);

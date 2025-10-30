@@ -1,6 +1,8 @@
 using System.Diagnostics.Contracts;
-using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
+#if !NETSTANDARD
+using System.Runtime.CompilerServices;
+#endif
 
 namespace BMTLab.ImeiType;
 
