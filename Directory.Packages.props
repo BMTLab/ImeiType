@@ -39,7 +39,7 @@
     <PackageVersion Include="NSubstitute" Version="5.1.0"/>
     <PackageVersion Include="coverlet.collector" Version="6.0.4"/>
     <PackageVersion Include="coverlet.msbuild" Version="6.0.4"/>
-    <PackageVersion Include="GitHubActionsTestLogger" Version="2.4.1"/>
+    <PackageVersion Include="GitHubActionsTestLogger" Version="3.0.0"/>
   </ItemGroup>
   <!-- Packages for LEGACY test frameworks (net6.0, net7.0) -->
   <ItemGroup Label="LegacyTests" Condition="'$(TargetFramework)'=='net6.0' Or '$(TargetFramework)'=='net7.0'">
