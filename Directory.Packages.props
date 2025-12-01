@@ -25,7 +25,7 @@
   </ItemGroup>
   <ItemGroup Label="Analyzers">
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.0.0-1.25277.114"/>
-    <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.15.0.120848"/>
+    <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.16.0.128591"/>
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0"/>
     <PackageVersion Include="GitVersion.MsBuild" Version="6.4.0"/>
   </ItemGroup>
