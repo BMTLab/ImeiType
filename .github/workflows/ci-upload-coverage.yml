@@ -31,7 +31,7 @@ jobs:
     steps:
       - name: ⚙ Checkout (matching commit)
         # Ensures workspace paths line up and commit metadata is available.
-        uses: actions/checkout@v5.0.0
+        uses: actions/checkout@v6.0.1
         with:
           fetch-depth: 0
 

@@ -30,7 +30,7 @@ jobs:
       # Explicit checkout with full history.
       # Full history is for tools that read versioning or tags.
       - name: ⚙️ Checkout
-        uses: actions/checkout@v5.0.0
+        uses: actions/checkout@v6.0.1
         with:
           fetch-depth: 0
 
