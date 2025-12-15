@@ -226,7 +226,7 @@ jobs:
       - name: 📤 Upload Analyzer Reports
         # Always upload to help debugging locally vs CI differences.
         if: ${{ always() }}
-        uses: actions/upload-artifact@v5.0.0
+        uses: actions/upload-artifact@v6.0.0
         with:
           name: ${{ env.DOTNET_ANALYZES }}-${{ github.sha }}
           path: ${{ env.DOTNET_ANALYZES }}/*
