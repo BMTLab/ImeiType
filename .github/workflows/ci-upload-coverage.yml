@@ -118,7 +118,7 @@ jobs:
       - name: ☁️ Upload to Codecov
         # Gate the upload on: (1) report presence, (2) token presence.
         if: ${{ steps.preflight.outputs.found == 'true' }}
-        uses: codecov/codecov-action@v5.5.1
+        uses: codecov/codecov-action@v5.5.2
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.preflight.outputs.cov_path }}
